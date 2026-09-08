@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#02040a" />
+  <meta name="description" content="小酷《飞蚊症》非官方互动数字艺术体验。" />
+  <title>飞蚊症 / FLOATERS</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #02040a;
+      --blue: #0b1c3f;
+      --electric: #477dff;
+      --ice: #dbe8ff;
+      --warm: #ffdca4;
+      --mx: 50%;
+      --my: 50%;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100%; margin: 0; background: var(--ink); overflow: hidden; }
+    body {
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: var(--ice);
+      cursor: crosshair;
+    }
+    button { font: inherit; }
+    .stage { position: fixed; inset: 0; isolation: isolate; background: #010207; }
+    .grain, .scanlines, .vignette { position: absolute; inset: 0; pointer-events: none; }
+    .grain {
+      z-index: 20; opacity: .16; mix-blend-mode: screen;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+    }
+    .scanlines { z-index: 19; opacity: .08; background: repeating-linear-gradient(0deg, transparent 0 3px, #91a9ff 4px); }
+    .vignette { z-index: 18; box-shadow: inset 0 0 22vmax #000; opacity: .72; }
+    .hud {
+      position: absolute; inset: 0; z-index: 30; pointer-events: none;
+      padding: clamp(1rem, 3vw, 2.2rem); display: flex; justify-content: space-between; align-items: flex-start;
+      letter-spacing: .16em; text-transform: uppercase; font-size: .74rem;
+    }
+    .brand { display: grid; gap: .32rem; }
+    .brand strong { font-family: Georgia, serif; font-size: 1rem; letter-spacing: .22em; font-weight: 400; }
+    .brand span, .counter { color: #8292b7; }
+    .tools { pointer-events: auto; display: flex; gap: .6rem; }
+    .tool {
+      width: 2.7rem; height: 2.7rem; border-radius: 50%; color: var(--ice); border: 1px solid #6380bd66;
+      background: #07112699; backdrop-filter: blur(12px); cursor: pointer; transition: .25s ease;
+    }
+    .tool:hover, .tool:focus-visible { border-color: #bfd3ff; box-shadow: 0 0 22px #477dff55; outline: none; }
+
+    .scene { position: absolute; inset: 0; transition: opacity 1.1s ease, transform 1.1s cubic-bezier(.2,.8,.2,1); }
+    .intro {
+      display: grid; place-items: center;
+      background:
+        radial-gradient(circle at var(--mx) var(--my), #284d9945 0 4%, transparent 18%),
+        radial-gradient(ellipse at center, #0a1734 0, #02040b 52%, #000 100%);
+    }
+    .intro::before {
+      content: ""; position: absolute; left: var(--mx); top: var(--my); width: 24vmax; height: 24vmax;
+      transform: translate(-50%, -50%); background: radial-gradient(circle, #c6d8ff18 0, transparent 68%);
+      filter: blur(8px); transition: left .12s linear, top .12s linear;
+    }
+    .eye-wrap { position: relative; width: min(76vw, 840px); aspect-ratio: 2 / 1; display: grid; place-items: center; }
+    .eye-line {
+      position: absolute; inset: 12% 2%; border: 2px solid #7ea3ffb5; border-radius: 75% 8% 75% 8% / 50%;
+      transform: rotate(45deg) skew(-9deg,-9deg); filter: drop-shadow(0 0 18px #3d6de377);
+    }
+    .eye-line::before, .eye-line::after {
+      content: ""; position: absolute; inset: 4%; border: 1px solid #6c89c94d; border-radius: inherit; transform: rotate(1deg);
+    }
+    .eye-line::after { inset: 9% 2%; transform: rotate(-2deg); }
+    .iris {
+      position: relative; z-index: 2; width: min(31vw, 320px); aspect-ratio: 1; border-radius: 50%;
+      display: grid; place-items: center;
+      background: repeating-radial-gradient(circle, #0b1630 0 3px, #172d5e 4px 6px, #050a16 7px 10px);
+      box-shadow: 0 0 0 1px #a7c1ff88, 0 0 45px #315fce99, inset 0 0 45px #000;
+      animation: breathe 4.8s ease-in-out infinite;
+    }
+    .iris::after { content: ""; position: absolute; inset: 11%; border-radius: 50%; border: 1px dashed #b8cbff66; animation: spin 18s linear infinite; }
+    .pupil {
+      position: relative; z-index: 3; width: 38%; aspect-ratio: 1; border: 1px solid #94b3ff; border-radius: 50%;
+      background: radial-gradient(circle at 42% 38%, #ffffff 0 2%, #0d1831 5%, #000 48%);
+      box-shadow: 0 0 36px #4c7fffb0, inset 0 0 16px #07142d; cursor: pointer;
+    }
+    .pupil::before { content: ""; position: absolute; inset: -24%; border: 1px solid #6d8dd35c; border-radius: 50%; animation: pulse 2.6s ease-out infinite; }
+    .enter-copy { position: absolute; top: calc(50% + min(21vw, 215px)); text-align: center; letter-spacing: .22em; font-size: .83rem; color: #c6d6f3; }
+    .enter-copy small { display: block; margin-top: .6rem; color: #607294; letter-spacing: .12em; font-size: .69rem; }
+    .blink { animation: blink 5s infinite; }
+
+    .world { opacity: 0; transform: scale(1.16); pointer-events: none; background: radial-gradient(ellipse at 50% 72%, #102756 0, #061127 29%, #01030a 70%); }
+    .stage.entered .intro { opacity: 0; transform: scale(3.6); pointer-events: none; }
+    .stage.entered .world { opacity: 1; transform: scale(1); pointer-events: auto; }
+    .horizon { position: absolute; inset: 0; perspective: 700px; overflow: hidden; }
+    .floor {
+      position: absolute; left: -25%; right: -25%; height: 58%; bottom: -22%; transform: rotateX(64deg);
+      background: repeating-radial-gradient(ellipse at center, transparent 0 49px, #5379b91a 50px 51px), linear-gradient(#0d2449aa, #01040c);
+      mask-image: linear-gradient(to bottom, transparent, #000 34%);
+    }
+    .spotlight {
+      position: absolute; left: 50%; top: 50%; width: min(44vw, 540px); height: min(40vh, 360px); transform: translate(-50%, -50%);
+      border-radius: 50%; background: radial-gradient(ellipse, #abc3ff18, #4578dc16 28%, transparent 70%);
+      box-shadow: inset 0 0 80px #8cacff12, 0 0 90px #386de935;
+    }
+    .core {
+      position: absolute; left: 50%; top: 49%; transform: translate(-50%, -50%); width: min(58vw, 560px); aspect-ratio: 1.126;
+      border-radius: 45%; display: grid; place-items: center; text-align: center; z-index: 3;
+      background: radial-gradient(ellipse, #1d397066, #071228aa 56%, transparent 74%);
+      border: 1px solid #9bb8ff24; box-shadow: 0 0 100px #376bd34d;
+    }
+    .core::before { content: ""; position: absolute; inset: 8%; z-index: 2; border: 1px solid #9bb7ff48; border-radius: 50%; animation: wobble 8s ease-in-out infinite; pointer-events: none; }
+    .core::after { content: ""; position: absolute; inset: -12%; z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, #7398ff1f, transparent 66%); filter: blur(20px); }
+    .cover-art {
+      width: 100%; height: 100%; object-fit: cover; opacity: .88; filter: contrast(1.08) saturate(.9) brightness(.88);
+      mix-blend-mode: screen; mask-image: radial-gradient(ellipse at center, #000 34%, #000c 62%, transparent 78%);
+      -webkit-mask-image: radial-gradient(ellipse at center, #000 34%, #000c 62%, transparent 78%);
+    }
+    .title { position: absolute; left: 50%; bottom: -1.5rem; transform: translateX(-50%); width: max-content; font-family: Georgia, "Songti SC", serif; letter-spacing: .24em; font-size: .9rem; font-weight: 400; color: #9db5e6; text-shadow: 0 0 20px #4d80ff; }
+    .title span { display: inline; margin-left: .9rem; font-family: system-ui, sans-serif; font-size: .66rem; color: #60769f; letter-spacing: .28em; }
+    .lamp {
+      position: absolute; z-index: 2; bottom: 7vh; width: 1.1rem; height: 1.1rem; border: 1px solid #ffe1a3; border-radius: 50%;
+      background: #fff6dc; box-shadow: 0 0 12px #fff, 0 0 42px 8px #ffc85d, 0 -20vh 120px 24px #5b87f64f;
+    }
+    .lamp::after { content: ""; position: absolute; left: 50%; bottom: -.55rem; width: 3.6rem; height: 1rem; transform: translateX(-50%); border: 1px solid #ffc96e66; border-radius: 50%; }
+    .lamp.l1 { left: 16%; opacity: .62; transform: scale(.72); }
+    .lamp.l2 { left: 31%; bottom: 12vh; }
+    .lamp.l3 { right: 25%; bottom: 10vh; transform: scale(.82); }
+    .lamp.l4 { right: 10%; opacity: .55; transform: scale(.58); }
+    .floater {
+      position: absolute; z-index: 10; width: var(--size); height: var(--size); left: var(--x); top: var(--y); border-radius: 50%;
+      border: 1px solid #0a1428; background: radial-gradient(circle at 34% 30%, #1e2d49 0 5%, #02050c 45%, #000 100%);
+      box-shadow: 0 0 0 0 #e2edff00, 0 0 18px #000; cursor: pointer; opacity: .87;
+      animation: drift var(--speed) ease-in-out var(--delay) infinite alternate;
+      transition: box-shadow .45s, border-color .45s, filter .45s, transform .2s;
+    }
+    .floater::before { content: ""; position: absolute; inset: -1.05rem; border: 1px solid transparent; border-radius: 50%; transition: .4s; }
+    .floater.ready::before, .floater:hover::before, .floater:focus-visible::before { border-color: #eff5ffbb; box-shadow: 0 0 22px #91b1ff99; }
+    .floater.ready, .floater:hover, .floater:focus-visible { outline: none; border-color: #b7cdff; filter: brightness(1.5); animation-play-state: paused; }
+    .floater.playing { box-shadow: 0 0 0 10px #d7e7ff12, 0 0 46px #85aaff; border-color: #fff; }
+    .hint {
+      position: absolute; z-index: 15; left: 50%; bottom: 2rem; transform: translateX(-50%); width: min(90vw, 600px); text-align: center;
+      font-size: .82rem; letter-spacing: .12em; color: #8ca0c6; transition: opacity .4s;
+    }
+    .now {
+      position: absolute; z-index: 16; top: 50%; left: 50%; transform: translate(-50%, calc(-50% + 7.6rem));
+      text-align: center; min-width: 260px; opacity: 0; transition: .45s; pointer-events: none;
+    }
+    .now.show { opacity: 1; }
+    .now small { display: block; color: #788fb7; letter-spacing: .22em; margin-bottom: .4rem; }
+    .now strong { font-family: Georgia, "Songti SC", serif; font-size: 1.2rem; font-weight: 400; letter-spacing: .12em; }
+    .progress { width: 100%; height: 1px; margin-top: .75rem; background: #5d729744; overflow: hidden; }
+    .progress i { display: block; height: 100%; width: 0; background: #d9e7ff; box-shadow: 0 0 10px #7ca1ff; }
+    .world.awake .core { animation: audioPulse 1.8s ease-in-out infinite; }
+    .world.awake .lamp { animation: lampBeat .9s ease-in-out infinite alternate; }
+    .credits { position: absolute; z-index: 14; left: 1.5rem; bottom: 1.5rem; color: #546582; font-size: .68rem; letter-spacing: .08em; writing-mode: vertical-rl; }
+
+    @keyframes breathe { 50% { transform: scale(1.025); filter: brightness(1.12); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { opacity: .7; transform: scale(.8); } 70%,100% { opacity: 0; transform: scale(1.35); } }
+    @keyframes blink { 0%,84%,100% { opacity: 1; } 88% { opacity: .3; } 90% { opacity: 1; } }
+    @keyframes drift { to { translate: var(--dx) var(--dy); transform: rotate(14deg) scale(1.06); } }
+    @keyframes wobble { 50% { transform: scale(.94) rotate(4deg); border-radius: 46% 54% 53% 47%; } }
+    @keyframes audioPulse { 50% { box-shadow: 0 0 120px #376bd570; } }
+    @keyframes lampBeat { to { filter: brightness(1.4); } }
+
+    @media (max-width: 640px) {
+      .hud { padding: 1rem; }
+      .brand span, .counter { display: none; }
+      .eye-wrap { width: 92vw; }
+      .iris { width: 43vw; }
+      .enter-copy { top: calc(50% + 26vw); width: 90vw; line-height: 1.6; }
+      .core { width: 92vw; }
+      .title { font-size: .78rem; bottom: -1rem; }
+      .title span { display: block; margin: .45rem 0 0; }
+      .hint { bottom: 1rem; padding: 0 2rem; line-height: 1.6; }
+      .credits { display: none; }
+      .now { transform: translate(-50%, calc(-50% + 6rem)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="scene intro" aria-label="进入飞蚊症互动体验">
+      <div class="eye-wrap">
+        <div class="eye-line"></div>
+        <div class="iris">
+          <button class="pupil" id="enter" aria-label="点击瞳孔进入专辑世界"></button>
+        </div>
+        <div class="enter-copy blink">凝视瞳孔 · 进入飞蚊症<small>CLICK THE PUPIL / 建议开启声音</small></div>
+      </div>
+    </div>
+
+    <section class="scene world" id="world" aria-label="飞蚊症专辑互动空间">
+      <div class="horizon"><div class="floor"></div></div>
+      <div class="spotlight"></div>
+      <div class="core">
+        <img class="cover-art" src="cover.webp" alt="小酷《飞蚊症》专辑封面：蓝黑色空间中，人物站在眼睛线稿与椭圆灯光之间" />
+        <h1 class="title">飞蚊症<span>COOLA / 小酷</span></h1>
+      </div>
+      <div class="lamp l1"></div><div class="lamp l2"></div><div class="lamp l3"></div><div class="lamp l4"></div>
+      <button class="floater" style="--x:12%;--y:22%;--size:18px;--speed:7s;--delay:-2s;--dx:42px;--dy:28px" data-track="01 · 灯火" aria-label="音乐节点 01 灯火"></button>
+      <button class="floater" style="--x:27%;--y:64%;--size:26px;--speed:9s;--delay:-5s;--dx:-26px;--dy:34px" data-track="02 · SIGNAL" aria-label="音乐节点 02"></button>
+      <button class="floater" style="--x:72%;--y:22%;--size:13px;--speed:6s;--delay:-1s;--dx:36px;--dy:-24px" data-track="03 · SIGNAL" aria-label="音乐节点 03"></button>
+      <button class="floater" style="--x:84%;--y:58%;--size:31px;--speed:10s;--delay:-7s;--dx:-50px;--dy:18px" data-track="04 · SIGNAL" aria-label="音乐节点 04"></button>
+      <button class="floater" style="--x:51%;--y:17%;--size:11px;--speed:8s;--delay:-3s;--dx:22px;--dy:44px" data-track="05 · SIGNAL" aria-label="音乐节点 05"></button>
+      <button class="floater" style="--x:61%;--y:72%;--size:20px;--speed:7.5s;--delay:-4s;--dx:-38px;--dy:-28px" data-track="06 · SIGNAL" aria-label="音乐节点 06"></button>
+      <div class="now" id="now"><small>NOW SEEING</small><strong id="track">01 · 灯火</strong><div class="progress"><i id="bar"></i></div></div>
+      <p class="hint" id="hint">别追它。停下来，等光环出现。</p>
+      <div class="credits">UNOFFICIAL FAN-MADE EXPERIENCE · 2026</div>
+    </section>
+
+    <header class="hud">
+      <div class="brand"><strong>FLOATERS</strong><span>AN INTERACTIVE ALBUM SPACE</span></div>
+      <div class="tools">
+        <span class="counter" id="counter">00 / 06</span>
+        <button class="tool" id="sound" aria-label="切换声音" title="声音">◉</button>
+        <button class="tool" id="reset" aria-label="返回眼睛" title="返回">↺</button>
+      </div>
+    </header>
+    <div class="scanlines"></div><div class="grain"></div><div class="vignette"></div>
+  </main>
+
+  <script>
+    const stage = document.querySelector('#stage');
+    const world = document.querySelector('#world');
+    const enter = document.querySelector('#enter');
+    const hint = document.querySelector('#hint');
+    const now = document.querySelector('#now');
+    const track = document.querySelector('#track');
+    const bar = document.querySelector('#bar');
+    const counter = document.querySelector('#counter');
+    const sound = document.querySelector('#sound');
+    const nodes = [...document.querySelectorAll('.floater')];
+    let audio, master, timer, stillTimer, lastX = 0, lastY = 0, found = new Set(), muted = false;
+
+    function initAudio() {
+      if (audio) return;
+      audio = new (window.AudioContext || window.webkitAudioContext)();
+      master = audio.createGain(); master.gain.value = .12; master.connect(audio.destination);
+    }
+    function tone(index) {
+      initAudio(); if (audio.state === 'suspended') audio.resume();
+      nodes.forEach(n => n.classList.remove('playing'));
+      const node = nodes[index]; node.classList.add('playing'); found.add(index);
+      counter.textContent = `${String(found.size).padStart(2,'0')} / 06`;
+      track.textContent = node.dataset.track; now.classList.add('show'); world.classList.add('awake');
+      hint.textContent = '你终于没有盯着它看。';
+      const base = [110, 138.59, 164.81, 196, 220, 261.63][index];
+      const start = audio.currentTime; const duration = 7;
+      [1, 1.5, 2].forEach((ratio, i) => {
+        const osc = audio.createOscillator(); const gain = audio.createGain();
+        osc.type = i === 0 ? 'sine' : 'triangle'; osc.frequency.value = base * ratio;
+        gain.gain.setValueAtTime(0, start); gain.gain.linearRampToValueAtTime(.18/(i+1), start+.3);
+        gain.gain.exponentialRampToValueAtTime(.001, start+duration);
+        osc.connect(gain); gain.connect(master); osc.start(start); osc.stop(start+duration);
+      });
+      bar.animate([{width:'0%'},{width:'100%'}], {duration: duration*1000, easing:'linear'});
+      clearTimeout(timer); timer = setTimeout(() => { node.classList.remove('playing'); world.classList.remove('awake'); now.classList.remove('show'); hint.textContent='别追它。停下来，等光环出现。'; }, duration*1000);
+    }
+    enter.addEventListener('click', () => { stage.classList.add('entered'); initAudio(); setTimeout(() => nodes[Math.floor(Math.random()*nodes.length)].focus(), 1200); });
+    document.querySelector('#reset').addEventListener('click', () => { stage.classList.remove('entered'); now.classList.remove('show'); world.classList.remove('awake'); });
+    sound.addEventListener('click', () => { initAudio(); muted = !muted; master.gain.setTargetAtTime(muted ? 0 : .12, audio.currentTime, .08); sound.textContent = muted ? '○' : '◉'; sound.setAttribute('aria-label', muted ? '开启声音' : '关闭声音'); });
+    nodes.forEach((node, index) => node.addEventListener('click', () => tone(index)));
+
+    function revealNearest(x, y) {
+      let nearest, distance = Infinity;
+      nodes.forEach(node => {
+        const r = node.getBoundingClientRect(); const d = Math.hypot(x-(r.left+r.width/2), y-(r.top+r.height/2));
+        if (d < distance) { distance = d; nearest = node; }
+      });
+      nodes.forEach(n => n.classList.remove('ready'));
+      if (nearest && distance < 220) nearest.classList.add('ready');
+    }
+    window.addEventListener('pointermove', e => {
+      document.documentElement.style.setProperty('--mx', `${e.clientX}px`); document.documentElement.style.setProperty('--my', `${e.clientY}px`);
+      const moved = Math.hypot(e.clientX-lastX, e.clientY-lastY); lastX=e.clientX; lastY=e.clientY;
+      clearTimeout(stillTimer); nodes.forEach(n => n.classList.remove('ready'));
+      if (stage.classList.contains('entered') && moved > 2) stillTimer=setTimeout(() => revealNearest(e.clientX,e.clientY), 650);
+    }, {passive:true});
+    window.addEventListener('pointerdown', e => { if (stage.classList.contains('entered')) revealNearest(e.clientX,e.clientY); }, {passive:true});
+  </script>
+</body>
+</html>
