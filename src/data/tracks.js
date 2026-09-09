@@ -51,7 +51,7 @@ export const tracks = [
     id: "fragment-04",
     order: 4,
     title: "片段 IV",
-    snippetSrc: null,
+    snippetSrc: "./biehaipa.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "blue",
@@ -67,7 +67,7 @@ export const tracks = [
     id: "fragment-05",
     order: 5,
     title: "片段 V",
-    snippetSrc: null,
+    snippetSrc: "./lingchen.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "glass",
@@ -83,7 +83,7 @@ export const tracks = [
     id: "fragment-06",
     order: 6,
     title: "片段 VI",
-    snippetSrc: null,
+    snippetSrc: "./goodnews.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "afterimage",
