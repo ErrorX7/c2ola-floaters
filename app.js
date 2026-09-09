@@ -285,10 +285,11 @@ const INTRO_VOLUME = .34;
 
 function updateSoundControl() {
   const waitingForTouch = introPlaybackBlocked && !muted && !stage.classList.contains("entered");
-  const appearsOff = muted || waitingForTouch;
-  sound.textContent = appearsOff ? "○" : "◉";
-  sound.setAttribute("aria-label", waitingForTouch ? "开启首页背景音乐" : (muted ? "开启声音" : "关闭声音"));
-  sound.title = waitingForTouch ? "轻触开启音乐" : "声音";
+  sound.textContent = muted ? "○" : "◉";
+  sound.dataset.soundState = muted ? "off" : (waitingForTouch ? "waiting" : "on");
+  sound.setAttribute("aria-pressed", String(!muted));
+  sound.setAttribute("aria-label", muted ? "开启声音" : "关闭声音");
+  sound.title = waitingForTouch ? "声音已开启 · 轻触页面开始播放" : "声音";
 }
 
 async function startIntroAudio() {
@@ -647,5 +648,7 @@ window.addEventListener("resize", () => {
 renderTrackNodes();
 scheduleBlink();
 requestAnimationFrame(animate);
+introAudio.defaultMuted = false;
+introAudio.muted = false;
 updateSoundControl();
 startIntroAudio();
