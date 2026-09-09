@@ -13,6 +13,7 @@ const trackNodes = document.querySelector("#trackNodes");
 const floaterField = document.querySelector("#floaterField");
 const sparkField = document.querySelector("#sparkField");
 const guidingLamp = document.querySelector("#guidingLamp");
+const sparkOrigin = document.querySelector("#sparkOrigin");
 const fragmentCaption = document.querySelector("#fragmentCaption");
 const fragmentOrder = document.querySelector("#fragmentOrder");
 const fragmentTitle = document.querySelector("#fragmentTitle");
@@ -140,9 +141,9 @@ function emitLanternSparks() {
   if (now - lastSparkBurstAt < 850) return;
   lastSparkBurstAt = now;
   const worldRect = world.getBoundingClientRect();
-  const lampRect = guidingLamp.getBoundingClientRect();
-  const originX = lampRect.left - worldRect.left + lampRect.width * .5;
-  const originY = lampRect.top - worldRect.top + lampRect.height * .67;
+  const sourceRect = sparkOrigin.getBoundingClientRect();
+  const originX = sourceRect.left - worldRect.left + sourceRect.width * .5;
+  const originY = sourceRect.top - worldRect.top + sourceRect.height * .5;
   renderSparks(originX, originY);
 
   const particleCount = reducedMotion ? 12 : (window.innerWidth <= 680 ? 28 : 42);

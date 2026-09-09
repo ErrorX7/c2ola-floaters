@@ -70,9 +70,45 @@
       <div class="depth-ring"></div>
       <div class="album-presence"><img src="cover.webp" alt="小酷《飞蚊症》专辑封面" /></div>
       <div class="guiding-path" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <button class="guiding-lamp" id="guidingLamp" type="button" aria-label="触碰漂浮的透明玻璃瓶，释放灯火并播放音乐碎片《灯火》">
+      <button class="guiding-lamp" id="guidingLamp" type="button" aria-label="触碰发光的手绘漂流瓶，释放灯火并播放音乐碎片《灯火》">
         <span class="lamp-aura" aria-hidden="true"></span>
-        <img src="lantern.webp" alt="一只近乎透明的漂流瓶，内部悬着微弱灯火" />
+        <svg class="bottle-sketch" viewBox="0 0 180 260" role="img" aria-labelledby="bottleTitle bottleDescription">
+          <title id="bottleTitle">装着海浪与灯火的手绘漂流瓶</title>
+          <desc id="bottleDescription">白蓝荧光线条勾勒出透明瓶身，瓶内有几层缓慢流动的海浪。</desc>
+          <defs>
+            <filter id="bottleInkGlow" x="-45%" y="-35%" width="190%" height="180%" color-interpolation-filters="sRGB">
+              <feTurbulence type="fractalNoise" baseFrequency="0.032 0.018" numOctaves="2" seed="9" result="inkNoise" />
+              <feDisplacementMap in="SourceGraphic" in2="inkNoise" scale="1.65" xChannelSelector="R" yChannelSelector="B" result="wobble" />
+              <feGaussianBlur in="wobble" stdDeviation="4.2" result="bloom" />
+              <feMerge><feMergeNode in="bloom" /><feMergeNode in="wobble" /></feMerge>
+            </filter>
+            <filter id="bottleCoreGlow" x="-250%" y="-250%" width="600%" height="600%">
+              <feGaussianBlur stdDeviation="8" />
+            </filter>
+            <clipPath id="bottleChamber">
+              <path d="M68 68 C64 76 53 81 43 90 C28 104 25 124 27 157 C29 199 43 227 69 239 C93 250 127 242 143 219 C157 198 160 169 155 139 C151 112 141 95 121 85 C108 78 101 73 99 65 Z" />
+            </clipPath>
+          </defs>
+
+          <g class="bottle-ink" filter="url(#bottleInkGlow)" aria-hidden="true">
+            <path class="bottle-outline bottle-outline-echo" d="M70 20 C68 34 71 52 68 65 C66 74 55 80 45 88 C29 101 24 121 26 155 C28 200 42 230 69 242 C94 252 130 243 146 219 C160 197 163 168 157 137 C153 110 143 93 122 83 C109 77 102 72 100 63 C98 49 101 34 98 21 C89 18 79 18 70 20 Z" />
+            <path class="bottle-outline bottle-outline-main" d="M71 22 C70 38 72 51 69 66 C66 76 56 80 46 90 C31 104 28 122 29 156 C30 195 43 224 68 237 C91 249 125 241 141 219 C156 198 158 169 153 141 C149 116 140 98 120 88 C107 81 98 75 97 65 C96 51 99 36 96 24 C87 21 79 21 71 22 Z" />
+            <path class="bottle-mouth" d="M70 22 C78 18 89 18 98 22 M70 29 C79 32 90 31 98 28" />
+
+            <g class="bottle-waves" clip-path="url(#bottleChamber)">
+              <path class="bottle-wave wave-a" d="M18 119 C38 107 52 125 72 117 C92 108 109 105 127 116 C140 124 153 123 169 113" />
+              <path class="bottle-wave wave-b" d="M15 139 C36 126 53 146 75 137 C96 128 111 126 130 139 C143 148 157 146 170 136" />
+              <path class="bottle-wave wave-c" d="M15 159 C39 146 57 165 80 156 C101 148 116 147 136 158 C150 166 161 164 173 154" />
+              <path class="bottle-wave wave-d" d="M18 181 C38 168 59 187 83 179 C105 171 124 174 141 184 C152 190 163 188 171 181" />
+              <path class="bottle-wave wave-e" d="M23 204 C42 190 61 210 83 201 C105 192 123 197 140 207 C149 212 158 211 166 204" />
+              <path class="bottle-ripple" d="M50 101 C61 94 70 96 78 101 M108 116 C118 110 128 112 136 119 M57 216 C70 210 86 212 96 218" />
+            </g>
+          </g>
+
+          <ellipse class="bottle-core-haze" cx="91" cy="183" rx="25" ry="18" filter="url(#bottleCoreGlow)" aria-hidden="true" />
+          <circle class="bottle-core" cx="91" cy="181" r="3.2" aria-hidden="true" />
+        </svg>
+        <span class="spark-origin" id="sparkOrigin" aria-hidden="true"></span>
         <span class="lamp-label">指路的灯火</span>
       </button>
       <div class="lamp-field" aria-hidden="true"></div>
