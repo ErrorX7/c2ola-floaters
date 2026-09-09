@@ -317,7 +317,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .track-node.active {
   border-color: rgba(255,255,255,.92);
   box-shadow: 0 0 18px rgba(255,255,255,.55), 0 0 var(--glow-size) rgba(var(--node-rgb),.54);
-  filter: brightness(1.4);
+  filter: brightness(calc(1 + var(--glow-intensity) * .35));
   animation-play-state: paused;
 }
 .node-number {

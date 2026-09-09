@@ -50,6 +50,7 @@ function renderTrackNodes() {
     node.style.setProperty("--node-size", `${16 + behavior.depth * 17}px`);
     node.style.setProperty("--node-rgb", track.glowStyle.rgb);
     node.style.setProperty("--glow-size", track.glowStyle.size);
+    node.style.setProperty("--glow-intensity", track.glowStyle.intensity);
     node.style.setProperty("--drift-time", `${behavior.driftSeconds}s`);
     node.style.setProperty("--delay", `${-index * 1.7}s`);
     node.style.setProperty("--node-dx", `${behavior.driftX}px`);
@@ -172,8 +173,9 @@ function playTrackAudio(track) {
   stopAudio();
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
-  if (track.snippetSrc) {
-    activeAudio = new Audio(track.snippetSrc);
+  const source = track.snippetSrc || track.fullAudioSrc;
+  if (source) {
+    activeAudio = new Audio(source);
     activeAudio.volume = muted ? 0 : .42;
     activeAudio.play().catch(() => playPlaceholder(track));
   } else {
@@ -206,7 +208,9 @@ function activateTrack(track, node) {
   fragmentOrder.textContent = `FRAGMENT ${String(track.order).padStart(2, "0")}`;
   fragmentTitle.textContent = track.title;
   fragmentCaption.classList.add("visible");
-  worldHint.textContent = track.snippetSrc ? "一小段声音正在穿过视野。" : "占位声景 · 可在曲目配置中替换为真实片段";
+  worldHint.textContent = track.snippetSrc || track.fullAudioSrc
+    ? "一小段声音正在穿过视野。"
+    : "占位声景 · 可在曲目配置中替换为真实片段";
   createRipple(node, track);
   playTrackAudio(track);
 
