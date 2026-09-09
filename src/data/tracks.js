@@ -11,7 +11,7 @@ export const tracks = [
       accentRgb: "255, 217, 154",
       secondary: "#18335d"
     },
-    nodeBehavior: { x: 22, y: 69, depth: 1, driftX: 12, driftY: -9, driftSeconds: 9.5 },
+    nodeBehavior: { x: 38, y: 62, depth: 1, driftX: 12, driftY: -9, driftSeconds: 9.5 },
     glowStyle: { rgb: "255, 211, 137", size: "150px", intensity: 1.2 },
     placeholderTone: { baseFrequency: 110, intervals: [1, 1.5, 2], duration: 8 }
   },
