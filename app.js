@@ -469,7 +469,7 @@ function activateTrack(track, node) {
     guidingLamp.classList.remove("active");
     world.classList.remove("fragment-active");
     fragmentCaption.classList.remove("visible");
-    worldHint.textContent = "触碰漂浮瓶，让灯火慢慢散开。";
+    worldHint.textContent = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
   }, track.placeholderTone.duration * 1000 + 250);
 }
 
