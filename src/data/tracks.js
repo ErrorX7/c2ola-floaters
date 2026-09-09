@@ -18,7 +18,7 @@ export const tracks = [
   {
     id: "fragment-02",
     order: 2,
-    title: "片段 II",
+    title: "青草地",
     snippetSrc: "./qingcaodi-qingmeiguo.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
@@ -34,7 +34,7 @@ export const tracks = [
   {
     id: "fragment-03",
     order: 3,
-    title: "片段 III",
+    title: "走出荒野",
     snippetSrc: "./zouchu-huangye.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
@@ -50,7 +50,7 @@ export const tracks = [
   {
     id: "fragment-04",
     order: 4,
-    title: "片段 IV",
+    title: "别害怕",
     snippetSrc: "./biehaipa.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
@@ -66,7 +66,7 @@ export const tracks = [
   {
     id: "fragment-05",
     order: 5,
-    title: "片段 V",
+    title: "凌晨",
     snippetSrc: "./lingchen.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
@@ -82,7 +82,7 @@ export const tracks = [
   {
     id: "fragment-06",
     order: 6,
-    title: "片段 VI",
+    title: "goodnews",
     snippetSrc: "./goodnews.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
