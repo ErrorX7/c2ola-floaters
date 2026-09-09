@@ -14,6 +14,7 @@ const floaterField = document.querySelector("#floaterField");
 const sparkField = document.querySelector("#sparkField");
 const guidingLamp = document.querySelector("#guidingLamp");
 const sparkOrigin = document.querySelector("#sparkOrigin");
+const introAudio = document.querySelector("#introAudio");
 const fragmentCaption = document.querySelector("#fragmentCaption");
 const fragmentOrder = document.querySelector("#fragmentOrder");
 const fragmentTitle = document.querySelector("#fragmentTitle");
@@ -39,6 +40,7 @@ let progressAnimation;
 let nearestTimer;
 let blinkTimer;
 let muted = false;
+let introFadeFrame;
 let textSparksReleased = false;
 let lastSparkBurstAt = 0;
 const activeBurstParticles = new Set();
@@ -276,6 +278,48 @@ function initializeAudio() {
   masterGain.connect(audioContext.destination);
 }
 
+const INTRO_VOLUME = .34;
+
+async function startIntroAudio() {
+  if (muted || stage.classList.contains("entered")) return;
+  if (introFadeFrame) cancelAnimationFrame(introFadeFrame);
+  introFadeFrame = undefined;
+  introAudio.volume = INTRO_VOLUME;
+  try {
+    await introAudio.play();
+  } catch (_) {
+    // Most mobile browsers wait for the viewer's first touch before allowing sound.
+  }
+}
+
+function pauseIntroAudio(resetPosition = false) {
+  if (introFadeFrame) cancelAnimationFrame(introFadeFrame);
+  introFadeFrame = undefined;
+  introAudio.pause();
+  introAudio.volume = INTRO_VOLUME;
+  if (resetPosition) introAudio.currentTime = 0;
+}
+
+function fadeOutIntro(duration = 680) {
+  if (introAudio.paused) {
+    introAudio.currentTime = 0;
+    return;
+  }
+  if (introFadeFrame) cancelAnimationFrame(introFadeFrame);
+  const startedAt = performance.now();
+  const startedVolume = introAudio.volume;
+  const fade = now => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    introAudio.volume = startedVolume * (1 - progress);
+    if (progress < 1) {
+      introFadeFrame = requestAnimationFrame(fade);
+    } else {
+      pauseIntroAudio(true);
+    }
+  };
+  introFadeFrame = requestAnimationFrame(fade);
+}
+
 function stopAudio() {
   if (activeAudio) {
     activeAudio.pause();
@@ -489,6 +533,7 @@ function animate(time) {
 }
 
 enter.addEventListener("click", () => {
+  fadeOutIntro();
   stage.classList.add("entered");
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
@@ -521,6 +566,8 @@ reset.addEventListener("click", () => {
   activeBurstParticles.clear();
   textSparksReleased = false;
   stopAudio();
+  introAudio.currentTime = 0;
+  if (!muted) startIntroAudio();
 });
 
 sound.addEventListener("click", () => {
@@ -528,12 +575,21 @@ sound.addEventListener("click", () => {
   initializeAudio();
   if (masterGain && audioContext) masterGain.gain.setTargetAtTime(muted ? 0 : .12, audioContext.currentTime, .08);
   if (activeAudio) activeAudio.volume = muted ? 0 : .42;
+  if (muted) {
+    pauseIntroAudio(false);
+  } else if (!stage.classList.contains("entered")) {
+    startIntroAudio();
+  }
   sound.textContent = muted ? "○" : "◉";
   sound.setAttribute("aria-label", muted ? "开启声音" : "关闭声音");
 });
 
 window.addEventListener("pointermove", updatePointer, { passive: true });
 window.addEventListener("pointerdown", updatePointer, { passive: true });
+window.addEventListener("pointerdown", event => {
+  if (!event.target.closest("#sound")) startIntroAudio();
+}, { passive: true, capture: true, once: true });
+window.addEventListener("keydown", () => startIntroAudio(), { capture: true, once: true });
 window.addEventListener("resize", () => {
   pointer.targetX = Math.min(pointer.targetX, window.innerWidth);
   pointer.targetY = Math.min(pointer.targetY, window.innerHeight);
@@ -542,3 +598,4 @@ window.addEventListener("resize", () => {
 renderTrackNodes();
 scheduleBlink();
 requestAnimationFrame(animate);
+startIntroAudio();
