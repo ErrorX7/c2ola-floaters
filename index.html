@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
@@ -30,9 +30,12 @@
                 <stop offset="1" stop-color="#02050d" stop-opacity=".72" />
               </radialGradient>
             </defs>
-            <g filter="url(#paperWobble)">
+            <g class="eye-blink-group">
+            <g class="eye-art" filter="url(#paperWobble)">
               <path class="sketch-line contour-main" d="M52 349 C137 285 186 205 308 169 C448 126 582 125 701 137 C873 151 1004 208 1151 303" />
               <path class="sketch-line contour-main" d="M49 352 C172 411 277 478 427 491 C606 508 749 491 883 449 C1007 410 1085 353 1151 303" />
+              <path class="sketch-line contour-painted" d="M38 356 C121 298 179 214 301 171 C445 121 578 130 704 139 C887 152 1018 223 1164 302" />
+              <path class="sketch-line contour-painted" d="M43 358 C176 426 282 486 432 498 C615 514 778 486 901 442 C1022 399 1091 344 1162 299" />
               <path class="sketch-line contour-echo" d="M72 329 C211 247 299 189 438 157 C589 123 762 151 896 187 C1018 220 1080 273 1135 318" />
               <path class="sketch-line contour-echo" d="M69 366 C194 425 319 456 453 472 C612 491 776 461 900 419 C1002 384 1078 337 1137 314" />
               <path class="sketch-line contour-echo" d="M105 390 C228 444 333 507 505 515 C711 525 892 452 1044 375" />
@@ -40,20 +43,20 @@
               <path class="sketch-line contour-scratch" d="M123 410 C292 514 489 548 685 524 C856 503 1010 430 1102 351" />
               <path class="sketch-line contour-main lashes" d="M77 334 L36 288 M129 285 L91 223 M205 222 L178 153 M302 175 L286 104 M421 143 L413 64 M550 132 L559 51 M713 141 L737 79 M853 171 L900 108 M972 215 L1027 160 M1060 261 L1130 229" />
               <path class="sketch-line contour-main lashes" d="M84 372 L38 415 M164 421 L128 478 M276 463 L253 529 M407 492 L397 556 M548 507 L552 575 M711 493 L734 553 M853 454 L894 516 M980 403 L1033 458 M1081 350 L1153 381" />
+              <path class="sketch-line dry-brush" d="M118 302 L87 275 M151 273 L121 236 M255 201 L235 154 M340 163 L331 111 M455 139 L461 91 M786 154 L813 103 M905 188 L946 138 M1010 231 L1062 193 M164 410 L136 449 M237 445 L219 492 M346 480 L340 532 M762 479 L785 526 M905 432 L943 476 M1034 379 L1082 413" />
               <g class="iris-gaze">
                 <path class="iris-wash" d="M472 307 C470 224 520 174 602 166 C691 157 754 216 755 301 C758 393 699 443 609 448 C519 452 466 399 472 307 Z" />
-                <path class="sketch-line iris-ring" d="M477 307 C470 220 523 176 604 166 C687 158 752 214 756 299 C760 386 708 438 617 449 C531 457 472 399 477 307 Z" />
-                <path class="sketch-line iris-ring thin" d="M497 305 C494 236 534 195 605 187 C676 179 729 229 733 303 C737 373 692 417 615 426 C542 432 501 382 497 305 Z" />
-                <path class="sketch-line iris-ring thin" d="M522 307 C519 252 552 216 608 212 C663 208 708 246 708 303 C710 361 673 398 614 402 C555 405 524 364 522 307 Z" />
+                <path class="sketch-line iris-ring" d="M477 307 C468 223 518 178 603 164 C690 158 752 211 759 298 C758 388 710 435 617 451 C530 456 471 401 477 307 Z" />
+                <path class="sketch-line iris-ring thin" d="M495 307 C491 237 530 197 607 185 C678 181 733 228 735 302 C738 374 694 416 614 429 C540 432 497 383 495 307 Z" />
+                <path class="sketch-line iris-ring thin" d="M521 309 C516 251 549 220 610 210 C666 209 710 245 710 302 C713 363 674 395 612 405 C554 403 523 365 521 309 Z" />
+                <path class="sketch-line iris-fracture" d="M493 257 L513 242 M531 207 L548 223 M666 190 L677 211 M716 244 L695 256 M736 329 L708 333 M682 408 L667 389 M563 420 L571 397 M499 361 L522 354" />
                 <circle class="iris-core" cx="614" cy="307" r="61" />
                 <circle class="iris-glint" cx="636" cy="282" r="13" />
                 <path class="sketch-line ray" d="M610 150 L611 109 M661 158 L676 116 M705 180 L731 139 M742 219 L780 190 M758 270 L809 260 M759 327 L811 337 M741 375 L781 405 M705 415 L733 457 M658 440 L672 486 M603 451 L600 497 M551 437 L533 482 M509 410 L478 451 M479 367 L435 391 M463 315 L416 316 M472 261 L427 243 M496 217 L461 182 M536 182 L515 139" />
               </g>
               <path class="sketch-line scratch" d="M184 331 L229 305 M281 382 L334 357 M365 232 L418 251 M770 220 L826 193 M793 371 L849 399 M932 301 L989 279" />
             </g>
-            <g class="lid-shades" aria-hidden="true">
-              <path class="lid-shade lid-upper" d="M0 0 H1200 V327 C1015 202 857 153 699 145 C531 137 321 154 0 348 Z" />
-              <path class="lid-shade lid-lower" d="M0 600 H1200 V307 C1021 414 849 474 686 491 C486 512 254 477 0 350 Z" />
+              <path class="sketch-line blink-seam" d="M48 350 C246 340 421 344 610 348 C814 352 989 337 1152 303" aria-hidden="true" />
             </g>
           </svg>
         </div>
@@ -66,7 +69,14 @@
       <div class="world-haze"></div>
       <div class="depth-ring"></div>
       <div class="album-presence"><img src="cover.webp" alt="小酷《飞蚊症》专辑封面" /></div>
+      <div class="guiding-path" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <button class="guiding-lamp" id="guidingLamp" type="button" aria-label="触碰指路的灯火，播放音乐碎片《灯火》">
+        <span class="lamp-aura" aria-hidden="true"></span>
+        <img src="lantern.webp" alt="一盏白色半透明玻璃灯，内部亮着温暖灯火" />
+        <span class="lamp-label">指路的灯火</span>
+      </button>
       <div class="lamp-field" aria-hidden="true"></div>
+      <div class="spark-field" id="sparkField" aria-label="漂浮的小花火文字"></div>
       <div class="track-nodes" id="trackNodes"></div>
       <div class="fragment-caption" id="fragmentCaption" aria-live="polite">
         <small id="fragmentOrder">FRAGMENT 01</small>

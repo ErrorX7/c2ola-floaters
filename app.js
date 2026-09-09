@@ -1,4 +1,5 @@
 import { tracks } from "./src/data/tracks.js";
+import { sparkTexts } from "./src/data/sparkTexts.js";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
@@ -10,6 +11,8 @@ const sound = document.querySelector("#sound");
 const counter = document.querySelector("#counter");
 const trackNodes = document.querySelector("#trackNodes");
 const floaterField = document.querySelector("#floaterField");
+const sparkField = document.querySelector("#sparkField");
+const guidingLamp = document.querySelector("#guidingLamp");
 const fragmentCaption = document.querySelector("#fragmentCaption");
 const fragmentOrder = document.querySelector("#fragmentOrder");
 const fragmentTitle = document.querySelector("#fragmentTitle");
@@ -62,22 +65,80 @@ function renderTrackNodes() {
   });
 }
 
+function renderSparks() {
+  sparkTexts.forEach((spark, index) => {
+    const button = document.createElement("button");
+    button.className = `spark ${spark.styleVariant}`;
+    if (spark.positionSeed.x < 21) button.classList.add("edge-left");
+    if (spark.positionSeed.x > 79) button.classList.add("edge-right");
+    button.type = "button";
+    button.dataset.sparkId = spark.id;
+    button.setAttribute("aria-label", `查看花火文字：${spark.text}`);
+    button.style.setProperty("--spark-x", `${spark.positionSeed.x}%`);
+    button.style.setProperty("--spark-y", `${spark.positionSeed.y}%`);
+    button.style.setProperty("--spark-time", `${6.5 + index * .73}s`);
+    button.style.setProperty("--spark-delay", `${-index * 1.4}s`);
+    button.style.setProperty("--spark-dx", `${index % 2 ? -8 : 10}px`);
+    button.style.setProperty("--spark-dy", `${index % 3 ? 8 : -7}px`);
+    button.style.setProperty("--spark-rotate", `${index % 2 ? -7 : 9}deg`);
+
+    const core = document.createElement("span");
+    core.className = "spark-core";
+    button.append(core);
+    const rayCount = spark.styleVariant === "long" ? 14 : 11;
+    for (let rayIndex = 0; rayIndex < rayCount; rayIndex += 1) {
+      const ray = document.createElement("i");
+      ray.className = "spark-ray";
+      const angle = (360 / rayCount) * rayIndex + index * 7;
+      const baseLength = spark.styleVariant === "long" ? 25 : 18;
+      const length = baseLength + ((rayIndex * 11 + index * 5) % 15);
+      ray.style.setProperty("--ray-angle", `${angle}deg`);
+      ray.style.setProperty("--ray-length", `${length}px`);
+      ray.style.setProperty("--ray-opacity", `${.38 + ((rayIndex * 17) % 50) / 100}`);
+      button.append(ray);
+    }
+    const copy = document.createElement("span");
+    copy.className = "spark-copy";
+    copy.textContent = spark.text;
+    button.append(copy);
+    button.addEventListener("click", event => {
+      event.stopPropagation();
+      const wasOpen = button.classList.contains("open");
+      document.querySelectorAll(".spark.open").forEach(item => item.classList.remove("open"));
+      button.classList.toggle("open", !wasOpen);
+    });
+    sparkField.append(button);
+  });
+}
+
 const floaterSpecs = [
   ["dark-dot", 8, 8, 10, 18, 1.05, .76],
+  ["dark-dot", 5, 5, 21, 42, .68, .62],
+  ["dark-dot", 10, 10, 37, 83, 1.12, .68],
   ["dark-dot", 14, 14, 84, 24, .88, .69],
+  ["dark-dot", 6, 6, 92, 56, .52, .55],
   ["dark-blob", 22, 18, 27, 73, 1.2, .54],
   ["dark-blob", 13, 16, 71, 78, .72, .48],
+  ["dark-blob", 9, 12, 54, 28, .46, .42],
   ["thread", 74, 3, 16, 48, 1.15, .45],
   ["thread", 92, 3, 68, 39, .82, .35],
+  ["thread", 58, 3, 43, 67, .58, .34],
+  ["thread", 112, 3, 79, 86, .42, .28],
   ["membrane", 95, 70, 8, 67, .62, .12],
   ["membrane", 130, 92, 72, 53, .44, .1],
   ["membrane", 64, 52, 46, 12, .31, .11],
+  ["membrane", 78, 105, 88, 17, .26, .085],
+  ["membrane", 54, 61, 34, 49, .73, .105],
   ["ring", 48, 42, 19, 28, .52, .12],
   ["ring", 72, 58, 82, 71, .38, .09],
   ["ring", 38, 34, 57, 61, .68, .1],
+  ["ring", 24, 29, 66, 14, .83, .12],
+  ["ring", 88, 72, 7, 88, .29, .075],
   ["wisp", 118, 44, 31, 18, .4, .1],
   ["wisp", 150, 52, 62, 81, .3, .08],
-  ["wisp", 86, 38, 88, 46, .56, .09]
+  ["wisp", 86, 38, 88, 46, .56, .09],
+  ["wisp", 104, 35, 49, 38, .72, .095],
+  ["wisp", 76, 30, 12, 58, .48, .085]
 ];
 
 const floaters = floaterSpecs.map((spec, index) => {
@@ -197,7 +258,9 @@ function createRipple(node, track) {
 
 function activateTrack(track, node) {
   document.querySelectorAll(".track-node").forEach(item => item.classList.remove("active"));
+  guidingLamp.classList.remove("active");
   node.classList.add("active");
+  if (track.id === "deng-huo") guidingLamp.classList.add("active");
   discovered.add(track.id);
   counter.textContent = `${String(discovered.size).padStart(2, "0")} / ${String(tracks.length).padStart(2, "0")}`;
   root.style.setProperty("--mood", track.visualMood.accent);
@@ -222,6 +285,7 @@ function activateTrack(track, node) {
   clearTimeout(fragmentTimer);
   fragmentTimer = setTimeout(() => {
     node.classList.remove("active");
+    guidingLamp.classList.remove("active");
     world.classList.remove("fragment-active");
     fragmentCaption.classList.remove("visible");
     worldHint.textContent = "别追它。停下来，让一个片段自己浮近。";
@@ -267,14 +331,15 @@ function scheduleBlink() {
   blinkTimer = setTimeout(() => {
     if (!stage.classList.contains("entered")) {
       const idle = performance.now() - pointer.lastMoveAt > 4500;
-      const duration = 180 + Math.random() * 140;
-      eyeStage.style.setProperty("--blink-time", `${duration}ms`);
+      const duration = 180 + Math.random() * 120;
+      const half = duration / 2;
+      eyeStage.style.setProperty("--blink-half", `${half}ms`);
       eyeStage.classList.add("blinking");
       if (idle) eyeStage.classList.add("strong-blink");
-      setTimeout(() => eyeStage.classList.remove("blinking", "strong-blink"), duration);
+      setTimeout(() => eyeStage.classList.remove("blinking", "strong-blink"), half);
     }
     scheduleBlink();
-  }, 6000 + Math.random() * 6000);
+  }, 4000 + Math.random() * 3000);
 }
 
 function animate(time) {
@@ -330,6 +395,18 @@ enter.addEventListener("click", () => {
   setTimeout(() => document.querySelector(".track-node")?.focus(), 1250);
 });
 
+guidingLamp.addEventListener("click", () => {
+  const track = tracks.find(item => item.id === "deng-huo");
+  const node = document.querySelector('[data-track-id="deng-huo"]');
+  if (track && node) activateTrack(track, node);
+});
+
+world.addEventListener("click", event => {
+  if (!event.target.closest(".spark")) {
+    document.querySelectorAll(".spark.open").forEach(item => item.classList.remove("open"));
+  }
+});
+
 reset.addEventListener("click", () => {
   stage.classList.remove("entered");
   world.classList.remove("fragment-active");
@@ -355,5 +432,6 @@ window.addEventListener("resize", () => {
 });
 
 renderTrackNodes();
+renderSparks();
 scheduleBlink();
 requestAnimationFrame(animate);
