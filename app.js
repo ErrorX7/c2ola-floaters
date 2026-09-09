@@ -309,7 +309,7 @@ async function startIntroAudio() {
     }
     const startedAt = performance.now();
     const fadeIn = now => {
-      const progress = Math.min(1, (now - startedAt) / 900);
+      const progress = Math.min(1, Math.max(0, (now - startedAt) / 900));
       introAudio.volume = INTRO_VOLUME * progress;
       if (progress < 1 && requestId === introPlayRequest) {
         introFadeFrame = requestAnimationFrame(fadeIn);
@@ -345,7 +345,7 @@ function fadeOutIntro(duration = 680) {
   const startedAt = performance.now();
   const startedVolume = introAudio.volume;
   const fade = now => {
-    const progress = Math.min(1, (now - startedAt) / duration);
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
     introAudio.volume = startedVolume * (1 - progress);
     if (progress < 1) {
       introFadeFrame = requestAnimationFrame(fade);
