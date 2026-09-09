@@ -492,7 +492,11 @@ enter.addEventListener("click", () => {
   stage.classList.add("entered");
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
-  setTimeout(() => document.querySelector(".track-node")?.focus(), 1250);
+  setTimeout(() => {
+    document.querySelector(".track-node")?.focus({ preventScroll: true });
+    stage.scrollTop = 0;
+    stage.scrollLeft = 0;
+  }, 1250);
 });
 
 guidingLamp.addEventListener("click", () => {
