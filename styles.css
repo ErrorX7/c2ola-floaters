@@ -411,28 +411,12 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   filter: blur(12px);
   animation: lamp-breathe 3.6s ease-in-out infinite alternate;
 }
-.lamp-label {
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: -1.25rem;
-  transform: translate(-50%,8px);
-  white-space: nowrap;
-  color: rgba(255,236,207,.78);
-  font: 400 .72rem/1.4 Georgia,"Songti SC",serif;
-  letter-spacing: .24em;
-  opacity: 0;
-  transition: opacity .5s, transform .5s;
-  text-shadow: 0 0 14px #ffbb62;
-}
 .guiding-lamp:hover .bottle-sketch, .guiding-lamp:focus-visible .bottle-sketch,
 .guiding-lamp:active .bottle-sketch, .guiding-lamp.active .bottle-sketch {
   opacity: .96;
   filter: drop-shadow(0 0 8px rgba(190,216,255,.3)) drop-shadow(0 0 16px rgba(125,164,235,.14));
   transform: scale(1.035);
 }
-.guiding-lamp:hover .lamp-label, .guiding-lamp:focus-visible .lamp-label,
-.guiding-lamp.active .lamp-label { opacity: 1; transform: translate(-50%,0); }
 .lamp-field {
   position: absolute;
   inset: 0;
@@ -647,12 +631,13 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   left: 50%;
   bottom: 1.35rem;
   transform: translateX(-50%);
-  width: min(90vw,620px);
+  width: min(92vw,860px);
   margin: 0;
   color: #697b9a;
   text-align: center;
-  font-size: .75rem;
-  letter-spacing: .13em;
+  font-size: .8rem;
+  line-height: 1.7;
+  letter-spacing: .08em;
   transition: opacity .5s;
 }
 .world.fragment-active .world-hint { opacity: .36; }
@@ -809,7 +794,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .spark { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
   .spark-copy { max-width: 58vw; font-size: .69rem; }
   .fragment-caption { bottom: 7rem; min-width: 72vw; }
-  .world-hint { bottom: max(.65rem,env(safe-area-inset-bottom)); padding: 0 2.6rem; line-height: 1.6; font-size: .69rem; }
+  .world-hint { bottom: max(.75rem,env(safe-area-inset-bottom)); width: calc(100% - 1.5rem); padding: 0 .75rem; line-height: 1.75; font-size: .72rem; letter-spacing: .045em; }
   .credits { display: none; }
 }
 
