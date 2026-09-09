@@ -3,7 +3,7 @@ export const tracks = [
     id: "deng-huo",
     order: 1,
     title: "灯火",
-    snippetSrc: null,
+    snippetSrc: "./denghuo.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "lamp",

@@ -1,4 +1,4 @@
-import { tracks } from "./src/data/tracks.js";
+import { tracks } from "./src/data/tracks.js?v=20260909h";
 import { sparkTexts } from "./src/data/sparkTexts.js";
 
 const root = document.documentElement;
