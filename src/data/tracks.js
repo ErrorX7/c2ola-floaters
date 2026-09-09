@@ -19,7 +19,7 @@ export const tracks = [
     id: "fragment-02",
     order: 2,
     title: "片段 II",
-    snippetSrc: null,
+    snippetSrc: "./qingcaodi-qingmeiguo.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "retinal",
@@ -35,7 +35,7 @@ export const tracks = [
     id: "fragment-03",
     order: 3,
     title: "片段 III",
-    snippetSrc: null,
+    snippetSrc: "./zouchu-huangye.mp3?v=20260909a",
     fullAudioSrc: null,
     visualMood: {
       name: "deep",
