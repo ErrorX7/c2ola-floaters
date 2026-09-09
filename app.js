@@ -38,6 +38,9 @@ let progressAnimation;
 let nearestTimer;
 let blinkTimer;
 let muted = false;
+let textSparksReleased = false;
+let lastSparkBurstAt = 0;
+const activeBurstParticles = new Set();
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -65,7 +68,9 @@ function renderTrackNodes() {
   });
 }
 
-function renderSparks() {
+function renderSparks(originX, originY) {
+  if (textSparksReleased) return;
+  textSparksReleased = true;
   sparkTexts.forEach((spark, index) => {
     const button = document.createElement("button");
     button.className = `spark ${spark.styleVariant}`;
@@ -81,6 +86,7 @@ function renderSparks() {
     button.style.setProperty("--spark-dx", `${index % 2 ? -8 : 10}px`);
     button.style.setProperty("--spark-dy", `${index % 3 ? 8 : -7}px`);
     button.style.setProperty("--spark-rotate", `${index % 2 ? -7 : 9}deg`);
+    button.style.animationPlayState = "paused";
 
     const core = document.createElement("span");
     core.className = "spark-core";
@@ -108,7 +114,84 @@ function renderSparks() {
       button.classList.toggle("open", !wasOpen);
     });
     sparkField.append(button);
+
+    if (!reducedMotion) {
+      const targetX = sparkField.clientWidth * spark.positionSeed.x / 100;
+      const targetY = sparkField.clientHeight * spark.positionSeed.y / 100;
+      const release = button.animate([
+        { transform: `translate(${originX - targetX}px,${originY - targetY}px) scale(.08)`, opacity: 0 },
+        { offset: .16, opacity: .92 },
+        { offset: .68, transform: `translate(${(originX - targetX) * .16}px,${(originY - targetY) * .2 - 18}px) scale(.72)`, opacity: .82 },
+        { transform: "translate(0,0) scale(1)", opacity: 1 }
+      ], {
+        duration: 1500 + index * 115,
+        easing: "cubic-bezier(.16,.72,.22,1)",
+        fill: "none"
+      });
+      release.finished.then(() => { button.style.animationPlayState = "running"; }).catch(() => {});
+    } else {
+      button.style.animationPlayState = "running";
+    }
   });
+}
+
+function emitLanternSparks() {
+  const now = performance.now();
+  if (now - lastSparkBurstAt < 850) return;
+  lastSparkBurstAt = now;
+  const worldRect = world.getBoundingClientRect();
+  const lampRect = guidingLamp.getBoundingClientRect();
+  const originX = lampRect.left - worldRect.left + lampRect.width * .5;
+  const originY = lampRect.top - worldRect.top + lampRect.height * .67;
+  renderSparks(originX, originY);
+
+  const particleCount = reducedMotion ? 12 : (window.innerWidth <= 680 ? 28 : 42);
+  const maxDistance = Math.min(270, Math.max(150, window.innerWidth * .24));
+  for (let index = 0; index < particleCount; index += 1) {
+    const particle = document.createElement("span");
+    const starLike = index % 4 !== 1;
+    const size = starLike ? 1.4 + Math.random() * 4.3 : 1.2 + Math.random() * 2.1;
+    particle.className = `released-spark ${starLike ? "star" : "seed"}`;
+    particle.style.setProperty("--burst-size", `${size.toFixed(2)}px`);
+    particle.style.setProperty("--burst-ray", `${(8 + size * 3.1).toFixed(2)}px`);
+    particle.style.setProperty("--seed-height", `${(size * 2.7).toFixed(2)}px`);
+    sparkField.append(particle);
+    activeBurstParticles.add(particle);
+
+    const angle = -Math.PI * (.1 + Math.random() * .8);
+    const distance = 52 + Math.random() * maxDistance;
+    const spread = .52 + Math.random() * .62;
+    const dx = Math.cos(angle) * distance * spread;
+    const dy = Math.sin(angle) * distance - 18 - Math.random() * 58;
+    const hangX = dx + (Math.random() - .5) * 42;
+    const hangY = dy - 25 - Math.random() * 48;
+    const duration = reducedMotion ? 1700 : 4400 + Math.random() * 3600;
+    const twinkle = .38 + Math.random() * .54;
+    const rotation = (Math.random() - .5) * 160;
+    const animation = particle.animate([
+      { transform: `translate3d(${originX}px,${originY}px,0) scale(.08) rotate(0deg)`, opacity: 0 },
+      { offset: .08, opacity: twinkle },
+      { offset: .36, transform: `translate3d(${originX + dx * .72}px,${originY + dy * .66}px,0) scale(1) rotate(${rotation * .35}deg)`, opacity: twinkle * .78 },
+      { offset: .58, opacity: twinkle },
+      { offset: .76, transform: `translate3d(${originX + dx}px,${originY + dy}px,0) scale(.82) rotate(${rotation}deg)`, opacity: twinkle * .62 },
+      { transform: `translate3d(${originX + hangX}px,${originY + hangY}px,0) scale(.42) rotate(${rotation * 1.35}deg)`, opacity: 0 }
+    ], {
+      duration,
+      delay: Math.random() * 260,
+      easing: "cubic-bezier(.16,.68,.25,1)",
+      fill: "forwards"
+    });
+    animation.finished.then(() => {
+      activeBurstParticles.delete(particle);
+      particle.remove();
+    }).catch(() => {});
+  }
+
+  while (activeBurstParticles.size > 92) {
+    const oldest = activeBurstParticles.values().next().value;
+    activeBurstParticles.delete(oldest);
+    oldest.remove();
+  }
 }
 
 const floaterSpecs = [
@@ -138,22 +221,38 @@ const floaterSpecs = [
   ["wisp", 150, 52, 62, 81, .3, .08],
   ["wisp", 86, 38, 88, 46, .56, .09],
   ["wisp", 104, 35, 49, 38, .72, .095],
-  ["wisp", 76, 30, 12, 58, .48, .085]
+  ["wisp", 76, 30, 12, 58, .48, .085],
+  ["white-membrane", 92, 68, 14, 23, .38, .09, true],
+  ["white-membrane", 66, 84, 29, 57, .66, .105, true],
+  ["white-membrane", 118, 72, 79, 35, .29, .072, true],
+  ["white-membrane", 54, 46, 62, 76, .82, .115, true],
+  ["pale-ring", 42, 48, 9, 72, .57, .12, true],
+  ["pale-ring", 74, 59, 91, 61, .33, .082, true],
+  ["pale-ring", 28, 31, 56, 19, .76, .13, true],
+  ["glass-speck", 16, 16, 21, 39, .88, .16, true],
+  ["glass-speck", 9, 9, 47, 69, .51, .13, true],
+  ["glass-speck", 21, 21, 73, 82, .72, .14, true],
+  ["glass-speck", 12, 12, 86, 17, .42, .12, true],
+  ["white-thread", 86, 24, 37, 27, .46, .13, true],
+  ["white-thread", 124, 31, 69, 51, .31, .085, true],
+  ["white-thread", 62, 18, 17, 86, .69, .11, true]
 ];
 
 const floaters = floaterSpecs.map((spec, index) => {
-  const [kind, width, height, xPercent, yPercent, depth, opacity] = spec;
+  const [kind, width, height, xPercent, yPercent, depth, opacity, worldOnly = false] = spec;
   const element = document.createElement("span");
-  const transparent = ["membrane", "ring", "wisp"].includes(kind);
-  element.className = `ambient-floater ${kind}`;
+  const transparent = ["membrane", "ring", "wisp", "white-membrane", "pale-ring", "glass-speck", "white-thread"].includes(kind);
+  element.className = `ambient-floater ${kind}${worldOnly ? " world-floater" : ""}`;
   element.style.setProperty("--w", `${width}px`);
   element.style.setProperty("--h", `${height}px`);
   element.style.setProperty("--base-opacity", opacity);
   element.style.setProperty("--blur", `${Math.max(0, (1.1 - depth) * 2.2)}px`);
+  element.style.transform = `translate3d(${window.innerWidth * xPercent / 100}px,${window.innerHeight * yPercent / 100}px,0)`;
   floaterField.append(element);
   return {
     element,
     transparent,
+    worldOnly,
     x: window.innerWidth * xPercent / 100,
     y: window.innerHeight * yPercent / 100,
     vx: 0,
@@ -288,7 +387,7 @@ function activateTrack(track, node) {
     guidingLamp.classList.remove("active");
     world.classList.remove("fragment-active");
     fragmentCaption.classList.remove("visible");
-    worldHint.textContent = "别追它。停下来，让一个片段自己浮近。";
+    worldHint.textContent = "触碰漂浮瓶，让灯火慢慢散开。";
   }, track.placeholderTone.duration * 1000 + 250);
 }
 
@@ -398,6 +497,7 @@ enter.addEventListener("click", () => {
 guidingLamp.addEventListener("click", () => {
   const track = tracks.find(item => item.id === "deng-huo");
   const node = document.querySelector('[data-track-id="deng-huo"]');
+  emitLanternSparks();
   if (track && node) activateTrack(track, node);
 });
 
@@ -412,6 +512,9 @@ reset.addEventListener("click", () => {
   world.classList.remove("fragment-active");
   fragmentCaption.classList.remove("visible");
   document.querySelectorAll(".track-node").forEach(node => node.classList.remove("active", "near"));
+  sparkField.replaceChildren();
+  activeBurstParticles.clear();
+  textSparksReleased = false;
   stopAudio();
 });
 
@@ -432,6 +535,5 @@ window.addEventListener("resize", () => {
 });
 
 renderTrackNodes();
-renderSparks();
 scheduleBlink();
 requestAnimationFrame(animate);
