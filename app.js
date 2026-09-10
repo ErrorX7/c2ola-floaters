@@ -822,7 +822,7 @@ function startWildsSequence(audio) {
     wildsAnimations.push(animation);
   });
 
-  const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, 7000);
+  const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, 4500);
   const riseAt = reducedMotion ? 80 : Math.min(revealAt - 900, assemblyDuration + 480);
   wildsTimers.push(setTimeout(() => {
     if (runId === wildsRunId) wildsFormation.classList.add("rising");
