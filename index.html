@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
-  <link rel="stylesheet" href="styles.css?v=20260910c" />
+  <link rel="stylesheet" href="styles.css?v=20260910d" />
 </head>
 <body>
   <main class="stage" id="stage">
@@ -126,6 +126,13 @@
         <article class="poster-sheet">
           <button class="poster-close" id="posterClose" type="button" aria-label="收起巡演海报">×</button>
           <img src="tour-poster.jpg?v=20260910c" alt="小酷 2026 巡演海报" />
+          <button class="poster-fold-entry" id="posterFoldEntry" type="button" aria-label="打开清晰巡演海报"><span>折页</span></button>
+        </article>
+      </section>
+      <section class="poster-detail" id="posterDetail" aria-hidden="true" aria-label="清晰巡演海报">
+        <button class="poster-detail-close" id="posterDetailClose" type="button" aria-label="返回折页海报">×</button>
+        <article class="poster-detail-paper">
+          <img src="tour-poster-full.jpg?v=20260910d" alt="小酷 2026 巡演海报清晰版" />
         </article>
       </section>
       <div class="fragment-caption" id="fragmentCaption" aria-live="polite">
@@ -154,6 +161,6 @@
     <div class="vignette"></div>
   </main>
   <audio id="introAudio" src="intro.mp3?v=20260909g" preload="auto" loop playsinline></audio>
-  <script type="module" src="app.js?v=20260910c"></script>
+  <script type="module" src="app.js?v=20260910d"></script>
 </body>
 </html>

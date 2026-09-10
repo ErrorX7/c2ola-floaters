@@ -25,6 +25,9 @@ const wildsLines = document.querySelector("#wildsLines");
 const wildsChibiEntry = document.querySelector("#wildsChibiEntry");
 const posterReveal = document.querySelector("#posterReveal");
 const posterClose = document.querySelector("#posterClose");
+const posterFoldEntry = document.querySelector("#posterFoldEntry");
+const posterDetail = document.querySelector("#posterDetail");
+const posterDetailClose = document.querySelector("#posterDetailClose");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -494,7 +497,22 @@ function showWildsEntry() {
   wildsChibiEntry.setAttribute("aria-hidden", "false");
 }
 
+function closePosterDetail() {
+  posterDetail.classList.remove("open");
+  window.setTimeout(() => {
+    if (!posterDetail.classList.contains("open")) {
+      posterDetail.setAttribute("aria-hidden", "true");
+    }
+  }, reducedMotion ? 20 : 360);
+}
+
+function openPosterDetail() {
+  posterDetail.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => posterDetail.classList.add("open"));
+}
+
 function closePosterScene() {
+  closePosterDetail();
   posterReveal.classList.remove("open");
   window.setTimeout(() => {
     if (!posterReveal.classList.contains("open")) {
@@ -768,6 +786,16 @@ wildsChibiEntry.addEventListener("click", event => {
 posterClose.addEventListener("click", event => {
   event.stopPropagation();
   closePosterScene();
+});
+
+posterFoldEntry.addEventListener("click", event => {
+  event.stopPropagation();
+  openPosterDetail();
+});
+
+posterDetailClose.addEventListener("click", event => {
+  event.stopPropagation();
+  closePosterDetail();
 });
 
 world.addEventListener("click", event => {
