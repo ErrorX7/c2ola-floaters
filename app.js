@@ -1,5 +1,5 @@
-import { tracks } from "./src/data/tracks.js?v=20260909m";
-import { sparkTexts } from "./src/data/sparkTexts.js";
+import { tracks } from "./src/data/tracks.js?v=20260909n";
+import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
