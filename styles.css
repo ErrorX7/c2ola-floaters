@@ -892,7 +892,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   transition: opacity 1.7s ease;
 }
 .grass-message {
-  transition: opacity 920ms ease, visibility 920ms step-end;
+  filter: blur(0);
+  transition: opacity 920ms ease, filter 920ms ease, visibility 920ms step-end;
 }
 .grass-message.visible {
   visibility: visible;
@@ -902,7 +903,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .grass-message.exiting {
   visibility: visible;
   opacity: 0;
-  transition: opacity 920ms ease, visibility 920ms step-end;
+  filter: blur(2px);
+  transition: opacity 920ms ease, filter 920ms ease, visibility 920ms step-end;
 }
 .grass-message.exiting::before {
   opacity: 0;
