@@ -1,6 +1,6 @@
 import { tracks } from "./src/data/tracks.js?v=20260909n";
 import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
-import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910c";
+import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910d";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
@@ -803,6 +803,15 @@ function renderTimelineMemoryContent(item) {
     image.alt = item.contentAlt || item.year || "巡演回忆图片";
     image.draggable = false;
     timelineMemoryContent.append(image);
+    if (item.contentCaption) {
+      const caption = document.createElement("p");
+      caption.className = "timeline-memory-caption";
+      caption.textContent = item.contentCaption;
+      timelineMemoryContent.classList.add("has-caption");
+      timelineMemoryContent.append(caption);
+    } else {
+      timelineMemoryContent.classList.remove("has-caption");
+    }
     return;
   }
   if (item.contentType === "video") {
