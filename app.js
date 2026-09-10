@@ -20,6 +20,8 @@ const fragmentOrder = document.querySelector("#fragmentOrder");
 const fragmentTitle = document.querySelector("#fragmentTitle");
 const fragmentProgress = document.querySelector("#fragmentProgress");
 const worldHint = document.querySelector("#worldHint");
+const wildsFormation = document.querySelector("#wildsFormation");
+const wildsLines = document.querySelector("#wildsLines");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -47,6 +49,9 @@ let introResumeAfterVisibility = false;
 let textSparksReleased = false;
 let lastSparkBurstAt = 0;
 const activeBurstParticles = new Set();
+let wildsRunId = 0;
+let wildsAnimations = [];
+let wildsTimers = [];
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -358,6 +363,7 @@ function fadeOutIntro(duration = 680) {
 }
 
 function stopAudio() {
+  stopWildsSequence();
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.currentTime = 0;
@@ -457,6 +463,7 @@ function activateTrack(track, node) {
     : "占位声景 · 可在曲目配置中替换为真实片段";
   createRipple(node, track);
   playTrackAudio(track);
+  if (track.id === "fragment-03") startWildsSequence(activeAudio);
 
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
@@ -471,6 +478,130 @@ function activateTrack(track, node) {
     fragmentCaption.classList.remove("visible");
     worldHint.textContent = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
   }, track.placeholderTone.duration * 1000 + 250);
+}
+
+
+function createWildsTargets(count) {
+  const width = Math.max(320, window.innerWidth);
+  const height = Math.max(480, window.innerHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const mobile = width <= 680;
+  const centerY = height * (mobile ? .48 : .49);
+  const topSize = Math.min(mobile ? 58 : 86, width * (mobile ? .17 : .09));
+  const bottomSize = Math.min(mobile ? 66 : 104, width * (mobile ? .205 : .115));
+
+  context.fillStyle = "#fff";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = `900 ${topSize}px Arial Black, Arial, sans-serif`;
+  context.fillText("THE", width / 2, centerY - topSize * .48);
+  context.font = `900 ${bottomSize}px Arial Black, Arial, sans-serif`;
+  context.fillText("WILDS", width / 2, centerY + bottomSize * .43);
+
+  const pixels = context.getImageData(0, 0, width, height).data;
+  const candidates = [];
+  const step = mobile ? 4 : 5;
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      if (pixels[(y * width + x) * 4 + 3] > 96) candidates.push({ x, y });
+    }
+  }
+  for (let index = candidates.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [candidates[index], candidates[swapIndex]] = [candidates[swapIndex], candidates[index]];
+  }
+  return candidates.slice(0, Math.min(count, candidates.length));
+}
+
+function wildsEdgeStart(index, width, height) {
+  const offset = 32 + Math.random() * 54;
+  if (index % 4 === 0) return { x: Math.random() * width, y: -offset };
+  if (index % 4 === 1) return { x: width + offset, y: Math.random() * height };
+  if (index % 4 === 2) return { x: Math.random() * width, y: height + offset };
+  return { x: -offset, y: Math.random() * height };
+}
+
+function stopWildsSequence() {
+  wildsRunId += 1;
+  wildsTimers.forEach(timer => clearTimeout(timer));
+  wildsTimers = [];
+  wildsAnimations.forEach(animation => {
+    try { animation.cancel(); } catch (_) { /* already finished */ }
+  });
+  wildsAnimations = [];
+  wildsFormation.classList.remove("active", "formed");
+  wildsLines.replaceChildren();
+}
+
+function startWildsSequence(audio) {
+  stopWildsSequence();
+  const runId = wildsRunId;
+  const durationMs = Number.isFinite(audio?.duration) && audio.duration > 0
+    ? audio.duration * 1000
+    : 18312;
+  const assemblyDuration = Math.max(6200, Math.min(durationMs * .72, durationMs - 1200));
+  const particleCount = reducedMotion ? 0 : (window.innerWidth <= 680 ? 78 : 132);
+  const targets = createWildsTargets(particleCount);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  wildsFormation.classList.add("active");
+  targets.forEach((target, index) => {
+    const line = document.createElement("i");
+    const start = wildsEdgeStart(index, width, height);
+    const length = 8 + Math.random() * 34;
+    const thickness = .65 + Math.random() * 1.15;
+    const startRotation = -120 + Math.random() * 240;
+    const targetRotation = -24 + Math.random() * 48;
+    const visibleOpacity = .24 + Math.random() * .5;
+    line.className = "wilds-line";
+    line.style.width = `${length.toFixed(1)}px`;
+    line.style.height = `${thickness.toFixed(2)}px`;
+    wildsLines.append(line);
+
+    const delay = (index / Math.max(1, targets.length)) * assemblyDuration * .22 + Math.random() * 360;
+    const travelTime = assemblyDuration * (.5 + Math.random() * .12);
+    const bendX = (start.x + target.x) * .5 + (Math.random() - .5) * width * .18;
+    const bendY = (start.y + target.y) * .5 + (Math.random() - .5) * height * .16;
+    const animation = line.animate([
+      { transform: `translate3d(${start.x}px,${start.y}px,0) rotate(${startRotation}deg) scaleX(.55)`, opacity: 0 },
+      { offset: .12, opacity: visibleOpacity },
+      { offset: .58, transform: `translate3d(${bendX}px,${bendY}px,0) rotate(${(startRotation + targetRotation) * .5}deg) scaleX(1)`, opacity: visibleOpacity * .82 },
+      { transform: `translate3d(${target.x}px,${target.y}px,0) rotate(${targetRotation}deg) scaleX(.42)`, opacity: visibleOpacity }
+    ], {
+      duration: travelTime,
+      delay,
+      easing: "cubic-bezier(.18,.68,.2,1)",
+      fill: "forwards"
+    });
+    wildsAnimations.push(animation);
+  });
+
+  const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, assemblyDuration * .91);
+  wildsTimers.push(setTimeout(() => {
+    if (runId !== wildsRunId) return;
+    wildsFormation.classList.add("formed");
+    wildsLines.querySelectorAll(".wilds-line").forEach((line, index) => {
+      const fade = line.animate(
+        [{ opacity: getComputedStyle(line).opacity }, { opacity: 0 }],
+        { duration: 720 + index % 5 * 70, easing: "ease-out", fill: "forwards" }
+      );
+      wildsAnimations.push(fade);
+    });
+  }, revealAt));
+
+  if (audio) {
+    audio.addEventListener("ended", () => {
+      if (runId === wildsRunId) stopWildsSequence();
+    }, { once: true });
+  } else {
+    wildsTimers.push(setTimeout(() => {
+      if (runId === wildsRunId) stopWildsSequence();
+    }, durationMs));
+  }
 }
 
 function findNearestTrack() {

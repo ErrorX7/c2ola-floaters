@@ -527,6 +527,60 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .spark.edge-left:hover .spark-copy, .spark.edge-left:focus-visible .spark-copy, .spark.edge-left.open .spark-copy { transform: translate(0,0); }
 .spark.edge-right .spark-copy { left: auto; right: 0; transform: translate(0,7px); text-align: right; }
 .spark.edge-right:hover .spark-copy, .spark.edge-right:focus-visible .spark-copy, .spark.edge-right.open .spark-copy { transform: translate(0,0); }
+
+.wilds-formation {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+}
+.wilds-formation.active { visibility: visible; }
+.wilds-lines { position: absolute; inset: 0; }
+.wilds-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(231,241,255,.86) 20%, rgba(255,255,255,.96) 52%, rgba(180,210,255,.42) 84%, transparent);
+  box-shadow: 0 0 6px rgba(221,235,255,.34), 0 0 14px rgba(132,171,239,.16);
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.wilds-word {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%,-48%) scale(.94);
+  color: #fbfdff;
+  font-family: "Arial Black",Arial,sans-serif;
+  font-size: clamp(3.8rem,7.4vw,7.2rem);
+  font-weight: 900;
+  line-height: .78;
+  letter-spacing: .035em;
+  text-align: center;
+  opacity: 0;
+  filter: blur(12px);
+  text-shadow: 0 0 8px rgba(255,255,255,.96), 0 0 26px rgba(175,210,255,.82), 0 0 58px rgba(95,142,228,.52);
+  transition: opacity .85s ease, filter .95s ease, transform 1.05s cubic-bezier(.2,.72,.2,1);
+}
+.wilds-word span:first-child {
+  padding-left: .22em;
+  font-size: .7em;
+  letter-spacing: .22em;
+  margin-bottom: .22em;
+}
+.wilds-formation.formed .wilds-word {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(-50%,-50%) scale(1);
+}
+
 .track-nodes, .floater-field { position: absolute; inset: 0; }
 .track-nodes { z-index: 14; pointer-events: none; }
 .floater-field { z-index: 12; pointer-events: none; }
@@ -794,6 +848,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .spark { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
   .spark-copy { max-width: 58vw; font-size: .69rem; }
   .fragment-caption { bottom: 7rem; min-width: 72vw; }
+  .wilds-word { top: 48%; font-size: clamp(3.15rem,18vw,5.15rem); line-height: .8; }
   .world-hint { bottom: max(.75rem,env(safe-area-inset-bottom)); width: calc(100% - 1.5rem); padding: 0 .75rem; line-height: 1.75; font-size: .72rem; letter-spacing: .045em; }
   .credits { display: none; }
 }
