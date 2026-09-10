@@ -891,11 +891,23 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   opacity: 0;
   transition: opacity 1.7s ease;
 }
+.grass-message {
+  transition: opacity 920ms ease, visibility 920ms step-end;
+}
 .grass-message.visible {
   visibility: visible;
   opacity: 1;
 }
 .grass-message.visible::before { opacity: 1; }
+.grass-message.exiting {
+  visibility: visible;
+  opacity: 0;
+  transition: opacity 920ms ease, visibility 920ms step-end;
+}
+.grass-message.exiting::before {
+  opacity: 0;
+  transition: opacity 920ms ease;
+}
 .grass-message-copy {
   position: relative;
   z-index: 1;

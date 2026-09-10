@@ -57,6 +57,8 @@ let textSparksReleased = false;
 let lastSparkBurstAt = 0;
 const activeBurstParticles = new Set();
 let wildsRunId = 0;
+let grassFadeTimer;
+let activeTrackId = null;
 let wildsAnimations = [];
 let wildsTimers = [];
 
@@ -428,12 +430,29 @@ function playTrackAudio(track) {
   stopAudio();
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
+  const isGrassTrack = track.id === "fragment-02";
   const source = track.snippetSrc || track.fullAudioSrc;
+  const scheduleGrassFallback = () => {
+    if (!isGrassTrack) return;
+    clearTimeout(grassFadeTimer);
+    grassFadeTimer = setTimeout(() => {
+      if (activeTrackId === "fragment-02") hideGrassMessage();
+    }, track.placeholderTone.duration * 1000);
+  };
   if (source) {
     activeAudio = new Audio(source);
     activeAudio.volume = muted ? 0 : .42;
-    activeAudio.play().catch(() => playPlaceholder(track));
+    if (isGrassTrack) {
+      activeAudio.addEventListener("ended", () => {
+        if (activeTrackId === "fragment-02") hideGrassMessage();
+      }, { once: true });
+    }
+    activeAudio.play().catch(() => {
+      scheduleGrassFallback();
+      playPlaceholder(track);
+    });
   } else {
+    scheduleGrassFallback();
     playPlaceholder(track);
   }
 }
@@ -451,6 +470,7 @@ function createRipple(node, track) {
 }
 
 function activateTrack(track, node) {
+  activeTrackId = track.id;
   document.querySelectorAll(".track-node").forEach(item => item.classList.remove("active"));
   guidingLamp.classList.remove("active");
   node.classList.add("active");
@@ -504,15 +524,25 @@ function showWildsEntry() {
 }
 
 function showGrassMessage() {
+  if (activeTrackId !== "fragment-02" || !stage.classList.contains("entered")) return;
+  clearTimeout(grassFadeTimer);
+  grassMessage.classList.remove("exiting", "visible");
   stage.classList.add("grass-moment");
-  grassMessage.classList.remove("visible");
   void grassMessage.offsetWidth;
   grassMessage.classList.add("visible");
 }
 
 function hideGrassMessage() {
-  grassMessage.classList.remove("visible");
+  clearTimeout(grassFadeTimer);
   stage.classList.remove("grass-moment");
+  if (!grassMessage.classList.contains("visible") && !grassMessage.classList.contains("exiting")) {
+    grassMessage.classList.remove("visible");
+    return;
+  }
+  grassMessage.classList.add("exiting");
+  grassFadeTimer = setTimeout(() => {
+    grassMessage.classList.remove("visible", "exiting");
+  }, 920);
 }
 
 function closePosterDetail() {
@@ -832,6 +862,7 @@ reset.addEventListener("click", () => {
   sparkField.replaceChildren();
   activeBurstParticles.clear();
   textSparksReleased = false;
+  activeTrackId = null;
   hideWildsEntry();
   hideGrassMessage();
   stopAudio();
