@@ -507,8 +507,10 @@ function closePosterDetail() {
 }
 
 function openPosterDetail() {
+  posterDetail.classList.remove("open");
   posterDetail.setAttribute("aria-hidden", "false");
-  requestAnimationFrame(() => posterDetail.classList.add("open"));
+  void posterDetail.offsetWidth;
+  posterDetail.classList.add("open");
 }
 
 function closePosterScene() {
