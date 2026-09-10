@@ -1239,10 +1239,37 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .poster-film-entry { left: 4.6%; bottom: 4.1%; width: 12.5%; }
   .film-frame { flex-basis: 76vw; }
   .film-reel.open .film-track { animation-duration: 20s; }
-  .grass-message { padding: 0 .8rem; }
-  .grass-message-copy { width: 74vw; font-size: clamp(.82rem, 3.25vw, 1rem); line-height: 2.08; letter-spacing: .045em; }
-  .grass-message::before { width: 86vw; height: 42vh; filter: blur(22px); }
-  .grass-line.grass-gap, .grass-line.grass-final { margin-top: .72em; }
+  .grass-message {
+    min-height: 100svh;
+    height: 100dvh;
+    box-sizing: border-box;
+    padding:
+      max(4.25rem, env(safe-area-inset-top))
+      .65rem
+      max(5.5rem, env(safe-area-inset-bottom));
+    overflow: visible;
+  }
+  .grass-message-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: min(82vw, 400px);
+    max-height: 100%;
+    font-size: clamp(.76rem, 3.05vw, .92rem);
+    line-height: 1.78;
+    letter-spacing: .035em;
+  }
+  .grass-message::before { width: 88vw; height: 46svh; filter: blur(22px); }
+  .grass-line {
+    flex: none;
+    white-space: nowrap;
+  }
+  .grass-line.grass-gap, .grass-line.grass-final { margin-top: .58em; }
+  .grass-message.visible .grass-line:nth-child(1) { animation-delay: .08s; }
+  .grass-message.visible .grass-line:nth-child(2) { animation-delay: .3s; }
+  .grass-message.visible .grass-line:nth-child(3) { animation-delay: .56s; }
+  .grass-message.visible .grass-line:nth-child(4) { animation-delay: .82s; }
+  .grass-message.visible .grass-line:nth-child(5) { animation-delay: 1.12s; }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }
