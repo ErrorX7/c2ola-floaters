@@ -1,6 +1,6 @@
 import { tracks } from "./src/data/tracks.js?v=20260909n";
 import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
-import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910a";
+import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910b";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
