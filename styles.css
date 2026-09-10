@@ -567,13 +567,18 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   opacity: 0;
   filter: blur(12px);
   text-shadow: 0 0 8px rgba(255,255,255,.96), 0 0 26px rgba(175,210,255,.82), 0 0 58px rgba(95,142,228,.52);
-  transition: opacity .85s ease, filter .95s ease, transform 1.05s cubic-bezier(.2,.72,.2,1);
+  transition: opacity 1.35s ease, filter 1.4s ease, transform 1.45s cubic-bezier(.2,.72,.2,1);
 }
 .wilds-word span:first-child {
   padding-left: .22em;
   font-size: .7em;
   letter-spacing: .22em;
   margin-bottom: .22em;
+}
+.wilds-formation.rising .wilds-word {
+  opacity: .16;
+  filter: blur(7px);
+  transform: translate(-50%,-49%) scale(.965);
 }
 .wilds-formation.formed .wilds-word {
   opacity: 1;

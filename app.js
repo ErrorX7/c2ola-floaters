@@ -542,7 +542,7 @@ function startWildsSequence(audio) {
   const durationMs = Number.isFinite(audio?.duration) && audio.duration > 0
     ? audio.duration * 1000
     : 18312;
-  const assemblyDuration = Math.max(6200, Math.min(durationMs * .72, durationMs - 1200));
+  const assemblyDuration = Math.min(5000, Math.max(4200, durationMs * .4));
   const particleCount = reducedMotion ? 0 : (window.innerWidth <= 680 ? 78 : 132);
   const targets = createWildsTargets(particleCount);
   const width = window.innerWidth;
@@ -580,7 +580,11 @@ function startWildsSequence(audio) {
     wildsAnimations.push(animation);
   });
 
-  const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, assemblyDuration * .91);
+  const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, 7000);
+  const riseAt = reducedMotion ? 80 : Math.min(revealAt - 900, assemblyDuration + 480);
+  wildsTimers.push(setTimeout(() => {
+    if (runId === wildsRunId) wildsFormation.classList.add("rising");
+  }, riseAt));
   wildsTimers.push(setTimeout(() => {
     if (runId !== wildsRunId) return;
     wildsFormation.classList.add("formed");
