@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
-  <link rel="stylesheet" href="styles.css?v=20260910h" />
+  <link rel="stylesheet" href="styles.css?v=20260910i" />
 </head>
 <body>
   <main class="stage" id="stage">
@@ -125,16 +125,25 @@
         <div class="paper-corner" aria-hidden="true"></div>
         <article class="poster-sheet">
           <button class="poster-close" id="posterClose" type="button" aria-label="收起巡演海报">×</button>
-          <img class="poster-preview-image" src="tour-poster.jpg?v=20260910c" alt="小酷 2026 巡演海报" />
-          <img class="poster-fold-glow" src="tour-poster.jpg?v=20260910c" alt="" aria-hidden="true" />
-          <button class="poster-fold-entry" id="posterFoldEntry" type="button" aria-label="打开清晰巡演海报"></button>
+          <img class="poster-preview-image" src="tour-poster-full.jpg?v=20260910e" alt="小酷 2026 巡演海报清晰版" />
+          <button class="poster-film-entry" id="posterFilmEntry" type="button" aria-label="打开巡演合照胶卷" aria-expanded="false">
+            <img src="poster-chibi-02.webp?v=20260910a" alt="" />
+          </button>
         </article>
-      </section>
-      <section class="poster-detail" id="posterDetail" aria-hidden="true" aria-label="清晰巡演海报">
-        <button class="poster-detail-close" id="posterDetailClose" type="button" aria-label="返回折页海报">×</button>
-        <article class="poster-detail-paper">
-          <img src="tour-poster-full.jpg?v=20260910d" alt="小酷 2026 巡演海报清晰版" />
-        </article>
+        <div class="film-reel" id="filmReel" aria-hidden="true" aria-label="巡演合照胶卷，轻触可收起">
+          <div class="film-track">
+            <div class="film-group">
+              <figure class="film-frame"><img src="film-01.webp?v=20260910a" alt="巡演现场合照一" /></figure>
+              <figure class="film-frame"><img src="film-02.webp?v=20260910a" alt="巡演现场合照二" /></figure>
+              <figure class="film-frame"><img src="film-03.webp?v=20260910a" alt="巡演现场合照三" /></figure>
+            </div>
+            <div class="film-group" aria-hidden="true">
+              <figure class="film-frame"><img src="film-01.webp?v=20260910a" alt="" /></figure>
+              <figure class="film-frame"><img src="film-02.webp?v=20260910a" alt="" /></figure>
+              <figure class="film-frame"><img src="film-03.webp?v=20260910a" alt="" /></figure>
+            </div>
+          </div>
+        </div>
       </section>
       <div class="grass-message" id="grassMessage" aria-live="polite" aria-label="青草地的陪伴文字">
         <div class="grass-message-copy">
@@ -171,6 +180,6 @@
     <div class="vignette"></div>
   </main>
   <audio id="introAudio" src="intro.mp3?v=20260909g" preload="auto" loop playsinline></audio>
-  <script type="module" src="app.js?v=20260910g"></script>
+  <script type="module" src="app.js?v=20260910h"></script>
 </body>
 </html>

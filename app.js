@@ -25,9 +25,8 @@ const wildsLines = document.querySelector("#wildsLines");
 const wildsChibiEntry = document.querySelector("#wildsChibiEntry");
 const posterReveal = document.querySelector("#posterReveal");
 const posterClose = document.querySelector("#posterClose");
-const posterFoldEntry = document.querySelector("#posterFoldEntry");
-const posterDetail = document.querySelector("#posterDetail");
-const posterDetailClose = document.querySelector("#posterDetailClose");
+const posterFilmEntry = document.querySelector("#posterFilmEntry");
+const filmReel = document.querySelector("#filmReel");
 const grassMessage = document.querySelector("#grassMessage");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -545,24 +544,21 @@ function hideGrassMessage() {
   }, 920);
 }
 
-function closePosterDetail() {
-  posterDetail.classList.remove("open");
-  window.setTimeout(() => {
-    if (!posterDetail.classList.contains("open")) {
-      posterDetail.setAttribute("aria-hidden", "true");
-    }
-  }, reducedMotion ? 20 : 360);
+function closeFilmReel() {
+  filmReel.classList.remove("open");
+  filmReel.setAttribute("aria-hidden", "true");
+  posterFilmEntry.setAttribute("aria-expanded", "false");
 }
 
-function openPosterDetail() {
-  posterDetail.classList.remove("open");
-  posterDetail.setAttribute("aria-hidden", "false");
-  void posterDetail.offsetWidth;
-  posterDetail.classList.add("open");
+function toggleFilmReel() {
+  const shouldOpen = !filmReel.classList.contains("open");
+  filmReel.classList.toggle("open", shouldOpen);
+  filmReel.setAttribute("aria-hidden", String(!shouldOpen));
+  posterFilmEntry.setAttribute("aria-expanded", String(shouldOpen));
 }
 
 function closePosterScene() {
-  closePosterDetail();
+  closeFilmReel();
   posterReveal.classList.remove("open");
   window.setTimeout(() => {
     if (!posterReveal.classList.contains("open")) {
@@ -838,14 +834,14 @@ posterClose.addEventListener("click", event => {
   closePosterScene();
 });
 
-posterFoldEntry.addEventListener("click", event => {
+posterFilmEntry.addEventListener("click", event => {
   event.stopPropagation();
-  openPosterDetail();
+  toggleFilmReel();
 });
 
-posterDetailClose.addEventListener("click", event => {
+filmReel.addEventListener("click", event => {
   event.stopPropagation();
-  closePosterDetail();
+  closeFilmReel();
 });
 
 world.addEventListener("click", event => {
