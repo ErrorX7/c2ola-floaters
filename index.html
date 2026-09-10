@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
-  <link rel="stylesheet" href="styles.css?v=20260910k" />
+  <link rel="stylesheet" href="styles.css?v=20260910l" />
 </head>
 <body>
   <main class="stage" id="stage">
@@ -126,6 +126,7 @@
         <article class="poster-sheet">
           <button class="poster-close" id="posterClose" type="button" aria-label="收起巡演海报">×</button>
           <img class="poster-preview-image" src="tour-poster-full.jpg?v=20260910e" alt="小酷 2026 巡演海报清晰版" />
+          <div class="poster-timeline-layer" id="posterTimelineLayer" aria-label="巡演时间节点"></div>
           <button class="poster-film-entry" id="posterFilmEntry" type="button" aria-label="打开巡演合照胶卷" aria-expanded="false">
             <img src="poster-chibi-02.webp?v=20260910a" alt="" />
           </button>
@@ -144,6 +145,13 @@
             </div>
           </div>
         </div>
+        <section class="timeline-memory" id="timelineMemory" aria-hidden="true" aria-label="巡演回忆">
+          <button class="timeline-memory-backdrop" id="timelineMemoryBackdrop" type="button" aria-label="关闭回忆"></button>
+          <article class="timeline-memory-paper" id="timelineMemoryPaper">
+            <button class="timeline-memory-close" id="timelineMemoryClose" type="button" aria-label="收起回忆">×</button>
+            <div class="timeline-memory-content" id="timelineMemoryContent"></div>
+          </article>
+        </section>
       </section>
       <div class="grass-message" id="grassMessage" aria-live="polite" aria-label="青草地的陪伴文字">
         <div class="grass-message-copy">
@@ -180,6 +188,6 @@
     <div class="vignette"></div>
   </main>
   <audio id="introAudio" src="intro.mp3?v=20260909g" preload="auto" loop playsinline></audio>
-  <script type="module" src="app.js?v=20260910i"></script>
+  <script type="module" src="app.js?v=20260910j"></script>
 </body>
 </html>

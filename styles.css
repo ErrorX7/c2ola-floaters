@@ -858,6 +858,183 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 }
 .poster-reveal.open .poster-close { opacity: .85; transition-delay: 1.35s; }
 .poster-close:hover, .poster-close:focus-visible { background: #fff; transform: rotate(10deg) scale(1.08); }
+.poster-timeline-layer {
+  position: absolute;
+  z-index: 6;
+  inset: var(--poster-pad);
+  pointer-events: none;
+}
+.timeline-sticker {
+  position: absolute;
+  left: var(--sticker-left);
+  top: var(--sticker-top);
+  width: var(--sticker-width);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: .018;
+  transform: rotate(var(--sticker-rotation)) scale(1);
+  transform-origin: center;
+  filter: brightness(1);
+  transition: opacity .38s ease, transform .38s ease, filter .38s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.timeline-sticker.has-memory {
+  opacity: .11;
+  filter: brightness(1.05) drop-shadow(0 0 4px rgba(202,220,255,.2));
+}
+.timeline-sticker img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+.timeline-sticker:hover,
+.timeline-sticker:focus-visible,
+.timeline-sticker:active,
+.timeline-sticker.memory-source {
+  z-index: 3;
+  opacity: .98;
+  transform: rotate(var(--sticker-rotation)) scale(1.04);
+  filter: brightness(1.12) drop-shadow(0 4px 8px rgba(0,0,0,.4)) drop-shadow(0 0 5px rgba(210,225,255,.24));
+}
+.timeline-sticker:focus-visible { outline: 0; }
+.timeline-sticker.peek { animation: timeline-sticker-peek .5s ease; }
+.timeline-sticker.returning { opacity: .92; }
+
+.timeline-memory {
+  position: absolute;
+  z-index: 32;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(1.2rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1.2rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  overflow: auto;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  isolation: isolate;
+  transition: opacity .52s ease, visibility .52s step-end;
+}
+.timeline-memory.open {
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity .52s ease;
+}
+.timeline-memory.closing {
+  visibility: visible;
+  pointer-events: none;
+  opacity: 1;
+}
+.timeline-memory-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(1,3,9,.66);
+  cursor: default;
+  opacity: 0;
+  transition: opacity .58s ease;
+}
+.timeline-memory.open .timeline-memory-backdrop { opacity: 1; }
+.timeline-memory.closing .timeline-memory-backdrop { opacity: 0; }
+.timeline-memory-paper {
+  position: relative;
+  z-index: 2;
+  width: min(52vw, 600px, 68dvh);
+  max-height: calc(100dvh - 2.4rem);
+  padding: clamp(.34rem,.65vw,.58rem);
+  overflow: auto;
+  background: #dedbd4;
+  box-shadow: 0 26px 75px rgba(0,0,0,.78), 0 0 0 1px rgba(255,255,255,.18);
+  clip-path: polygon(2% 1%, 17% 0, 31% 1.5%, 48% .2%, 64% 1.2%, 82% 0, 99% 2%, 98% 18%, 100% 34%, 98.5% 52%, 100% 71%, 98% 99%, 78% 98%, 62% 100%, 43% 98.6%, 24% 100%, 1% 98%, 2% 80%, 0 63%, 1.6% 44%, 0 25%);
+  opacity: 0;
+  transform: translate3d(var(--timeline-from-x,0),var(--timeline-from-y,0),0) rotate(var(--timeline-from-rotation,-5deg)) scale(.13);
+  transform-origin: center;
+  transition: opacity .42s ease, transform .76s cubic-bezier(.18,.78,.18,1), filter .62s ease;
+}
+.timeline-memory-paper::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  opacity: .07;
+  mix-blend-mode: multiply;
+  background: repeating-linear-gradient(1deg, transparent 0 5px, rgba(25,26,28,.22) 6px 7px);
+}
+.timeline-memory.open .timeline-memory-paper {
+  opacity: 1;
+  transform: translate3d(0,0,0) rotate(-.7deg) scale(1);
+}
+.timeline-memory.closing .timeline-memory-paper {
+  opacity: 0;
+  filter: blur(1px);
+}
+.timeline-memory-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+.timeline-memory-content img,
+.timeline-memory-content video {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 3.6rem);
+  object-fit: contain;
+  filter: none;
+}
+.timeline-memory-content p {
+  max-width: 34rem;
+  margin: 0;
+  padding: 2rem;
+  color: #18202e;
+  font: 400 1rem/1.9 "Noto Sans SC","PingFang SC",sans-serif;
+  white-space: pre-wrap;
+}
+.timeline-memory-close {
+  position: absolute;
+  z-index: 5;
+  top: .7rem;
+  right: .7rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid rgba(235,239,246,.54);
+  border-radius: 50%;
+  background: rgba(3,5,11,.64);
+  color: #eef3fb;
+  font: 400 1.24rem/1 Arial,sans-serif;
+  cursor: pointer;
+  opacity: .82;
+  transition: opacity .28s ease, transform .28s ease, background .28s ease;
+}
+.timeline-memory-close:hover,
+.timeline-memory-close:focus-visible {
+  opacity: 1;
+  transform: rotate(9deg) scale(1.06);
+  background: rgba(24,30,43,.84);
+}
+.poster-sheet { transition: filter .6s ease; }
+.poster-reveal.timeline-memory-open .poster-sheet {
+  filter: brightness(.46) saturate(.72) blur(2.4px);
+}
+.poster-reveal.timeline-memory-open .paper-corner { opacity: .08; }
+@keyframes timeline-sticker-peek {
+  50% { opacity: .72; transform: rotate(var(--sticker-rotation)) scale(1.035); filter: brightness(1.1); }
+}
+
 @keyframes grass-line-in {
   to { opacity: .9; transform: translateY(0); filter: blur(0); }
 }
@@ -1237,6 +1414,20 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .wilds-chibi-entry span { font-size: .57rem; }
   .poster-sheet { --poster-pad: .34rem; width: min(90vw,430px,58dvh); padding: var(--poster-pad); }
   .poster-film-entry { left: 4.6%; bottom: 4.1%; width: 12.5%; }
+  .timeline-memory {
+    place-items: start center;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .timeline-memory-paper {
+    width: min(90vw, 66dvh);
+    max-height: none;
+    margin: auto 0;
+    padding: .35rem;
+  }
+  .timeline-memory-content img,
+  .timeline-memory-content video { max-height: 84dvh; }
+  .timeline-memory-close { top: .55rem; right: .55rem; width: 1.75rem; height: 1.75rem; }
   .film-frame { flex-basis: 76vw; }
   .film-reel.open .film-track { animation-duration: 20s; }
   .grass-message {

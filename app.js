@@ -1,5 +1,6 @@
 import { tracks } from "./src/data/tracks.js?v=20260909n";
 import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
+import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910a";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
@@ -27,6 +28,12 @@ const posterReveal = document.querySelector("#posterReveal");
 const posterClose = document.querySelector("#posterClose");
 const posterFilmEntry = document.querySelector("#posterFilmEntry");
 const filmReel = document.querySelector("#filmReel");
+const posterTimelineLayer = document.querySelector("#posterTimelineLayer");
+const timelineMemory = document.querySelector("#timelineMemory");
+const timelineMemoryBackdrop = document.querySelector("#timelineMemoryBackdrop");
+const timelineMemoryPaper = document.querySelector("#timelineMemoryPaper");
+const timelineMemoryClose = document.querySelector("#timelineMemoryClose");
+const timelineMemoryContent = document.querySelector("#timelineMemoryContent");
 const grassMessage = document.querySelector("#grassMessage");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -59,6 +66,8 @@ let wildsRunId = 0;
 let grassFadeTimer;
 let grassRevealTimers = [];
 let activeTrackId = null;
+let activeTimelineSticker = null;
+let timelineCloseTimer;
 let wildsAnimations = [];
 let wildsTimers = [];
 
@@ -565,6 +574,117 @@ function hideGrassMessage() {
   }, 920);
 }
 
+function renderPosterTimeline() {
+  posterTimelineLayer.replaceChildren();
+  posterTimeline.forEach(item => {
+    const sticker = document.createElement("button");
+    sticker.className = "timeline-sticker";
+    if (item.contentType && item.contentSrc) sticker.classList.add("has-memory");
+    sticker.type = "button";
+    sticker.dataset.timelineId = String(item.id);
+    sticker.setAttribute(
+      "aria-label",
+      item.contentType && item.contentSrc
+        ? `打开 ${item.year} 的巡演回忆`
+        : `${item.year} 时间节点`
+    );
+    sticker.style.setProperty("--sticker-left", item.position.left);
+    sticker.style.setProperty("--sticker-top", item.position.top);
+    sticker.style.setProperty("--sticker-width", item.position.width);
+    sticker.style.setProperty("--sticker-rotation", item.position.rotation);
+
+    const image = document.createElement("img");
+    image.src = item.stickerSrc;
+    image.alt = "";
+    image.draggable = false;
+    if (item.clipPath) image.style.clipPath = item.clipPath;
+    sticker.append(image);
+
+    sticker.addEventListener("click", event => {
+      event.stopPropagation();
+      if (item.contentType && item.contentSrc) {
+        openTimelineMemory(item, sticker);
+      } else {
+        sticker.classList.remove("peek");
+        void sticker.offsetWidth;
+        sticker.classList.add("peek");
+        window.setTimeout(() => sticker.classList.remove("peek"), 520);
+      }
+    });
+    posterTimelineLayer.append(sticker);
+  });
+}
+
+function renderTimelineMemoryContent(item) {
+  timelineMemoryContent.replaceChildren();
+  if (item.contentType === "poster" || item.contentType === "image") {
+    const image = document.createElement("img");
+    image.src = item.contentSrc;
+    image.alt = item.contentAlt || item.year || "巡演回忆图片";
+    image.draggable = false;
+    timelineMemoryContent.append(image);
+    return;
+  }
+  if (item.contentType === "video") {
+    const video = document.createElement("video");
+    video.src = item.contentSrc;
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    timelineMemoryContent.append(video);
+    return;
+  }
+  if (item.contentType === "text") {
+    const copy = document.createElement("p");
+    copy.textContent = item.contentText || "";
+    timelineMemoryContent.append(copy);
+  }
+}
+
+function openTimelineMemory(item, sticker) {
+  closeFilmReel();
+  clearTimeout(timelineCloseTimer);
+  renderTimelineMemoryContent(item);
+  activeTimelineSticker?.classList.remove("memory-source", "returning");
+  activeTimelineSticker = sticker;
+  sticker.classList.add("memory-source");
+
+  const rect = sticker.getBoundingClientRect();
+  const fromX = rect.left + rect.width / 2 - window.innerWidth / 2;
+  const fromY = rect.top + rect.height / 2 - window.innerHeight / 2;
+  timelineMemoryPaper.style.setProperty("--timeline-from-x", `${fromX}px`);
+  timelineMemoryPaper.style.setProperty("--timeline-from-y", `${fromY}px`);
+  timelineMemoryPaper.style.setProperty("--timeline-from-rotation", item.position.rotation);
+
+  timelineMemory.classList.remove("open", "closing");
+  timelineMemory.setAttribute("aria-hidden", "false");
+  posterReveal.classList.add("timeline-memory-open");
+  void timelineMemory.offsetWidth;
+  timelineMemory.classList.add("open");
+  timelineMemoryClose.focus({ preventScroll: true });
+}
+
+function closeTimelineMemory(immediate = false) {
+  if (timelineMemory.getAttribute("aria-hidden") === "true") return;
+  clearTimeout(timelineCloseTimer);
+  const finish = () => {
+    timelineMemory.classList.remove("open", "closing");
+    timelineMemory.setAttribute("aria-hidden", "true");
+    posterReveal.classList.remove("timeline-memory-open");
+    timelineMemoryContent.replaceChildren();
+    activeTimelineSticker?.classList.remove("memory-source", "returning");
+    activeTimelineSticker = null;
+  };
+  if (immediate || reducedMotion) {
+    finish();
+    return;
+  }
+  timelineMemory.classList.remove("open");
+  timelineMemory.classList.add("closing");
+  activeTimelineSticker?.classList.add("returning");
+  timelineCloseTimer = window.setTimeout(finish, 760);
+}
+
 function closeFilmReel() {
   filmReel.classList.remove("open");
   filmReel.setAttribute("aria-hidden", "true");
@@ -579,6 +699,7 @@ function toggleFilmReel() {
 }
 
 function closePosterScene() {
+  closeTimelineMemory(true);
   closeFilmReel();
   posterReveal.classList.remove("open");
   window.setTimeout(() => {
@@ -865,6 +986,22 @@ filmReel.addEventListener("click", event => {
   closeFilmReel();
 });
 
+timelineMemoryClose.addEventListener("click", event => {
+  event.stopPropagation();
+  closeTimelineMemory();
+});
+
+timelineMemoryBackdrop.addEventListener("click", event => {
+  event.stopPropagation();
+  closeTimelineMemory();
+});
+
+window.addEventListener("keydown", event => {
+  if (event.key === "Escape" && timelineMemory.getAttribute("aria-hidden") === "false") {
+    closeTimelineMemory();
+  }
+});
+
 world.addEventListener("click", event => {
   if (!event.target.closest(".spark")) {
     document.querySelectorAll(".spark.open").forEach(item => item.classList.remove("open"));
@@ -924,6 +1061,7 @@ window.addEventListener("resize", () => {
   pointer.targetY = Math.min(pointer.targetY, window.innerHeight);
 });
 
+renderPosterTimeline();
 renderTrackNodes();
 scheduleBlink();
 requestAnimationFrame(animate);
