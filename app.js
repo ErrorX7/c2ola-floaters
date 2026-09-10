@@ -70,6 +70,13 @@ let activeTimelineSticker = null;
 let timelineCloseTimer;
 let wildsAnimations = [];
 let wildsTimers = [];
+let posterAmbientGain;
+let posterAmbientSources = [];
+let posterAmbientTimer;
+let posterAmbientStopTimer;
+let posterTrackFadeFrame;
+let timelineAudio;
+let timelineAudioFadeFrame;
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -380,8 +387,181 @@ function fadeOutIntro(duration = 680) {
   introFadeFrame = requestAnimationFrame(fade);
 }
 
+const TRACK_VOLUME = .42;
+const POSTER_WILDS_VOLUME = .09;
+
+function fadeMediaVolume(media, targetVolume, duration, onComplete) {
+  if (!media) return;
+  const startVolume = Number.isFinite(media.volume) ? media.volume : 0;
+  const startedAt = performance.now();
+  const step = now => {
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
+    media.volume = startVolume + (targetVolume - startVolume) * progress;
+    if (progress < 1) {
+      posterTrackFadeFrame = requestAnimationFrame(step);
+    } else {
+      posterTrackFadeFrame = undefined;
+      onComplete?.();
+    }
+  };
+  if (posterTrackFadeFrame) cancelAnimationFrame(posterTrackFadeFrame);
+  posterTrackFadeFrame = requestAnimationFrame(step);
+}
+
+function stopPosterAmbience(immediate = false) {
+  clearTimeout(posterAmbientTimer);
+  clearTimeout(posterAmbientStopTimer);
+  if (!posterAmbientGain || !audioContext) return;
+  const sources = posterAmbientSources;
+  const finish = () => {
+    sources.forEach(source => {
+      try { source.stop(); } catch (_) { /* ambience already ended */ }
+    });
+    if (posterAmbientSources === sources) {
+      posterAmbientSources = [];
+      posterAmbientGain = undefined;
+    }
+  };
+  if (immediate || reducedMotion) {
+    finish();
+    return;
+  }
+  const now = audioContext.currentTime;
+  posterAmbientGain.gain.cancelScheduledValues(now);
+  posterAmbientGain.gain.setValueAtTime(Math.max(.0001, posterAmbientGain.gain.value), now);
+  posterAmbientGain.gain.exponentialRampToValueAtTime(.0001, now + .42);
+  posterAmbientStopTimer = setTimeout(finish, 470);
+}
+
+function startPosterAmbience() {
+  if (posterAmbientGain || !posterReveal.classList.contains("open")) return;
+  initializeAudio();
+  if (!audioContext || !masterGain) return;
+  if (audioContext.state === "suspended") audioContext.resume();
+
+  const now = audioContext.currentTime;
+  const bedGain = audioContext.createGain();
+  bedGain.gain.setValueAtTime(.0001, now);
+  bedGain.gain.exponentialRampToValueAtTime(muted ? .0001 : .115, now + .9);
+  bedGain.connect(masterGain);
+
+  const low = audioContext.createOscillator();
+  const high = audioContext.createOscillator();
+  low.type = "sine";
+  high.type = "triangle";
+  low.frequency.setValueAtTime(97, now);
+  high.frequency.setValueAtTime(145.5, now);
+  high.detune.setValueAtTime(-7, now);
+
+  const lowGain = audioContext.createGain();
+  const highGain = audioContext.createGain();
+  lowGain.gain.value = .52;
+  highGain.gain.value = .12;
+  low.connect(lowGain);
+  high.connect(highGain);
+  lowGain.connect(bedGain);
+  highGain.connect(bedGain);
+
+  const noiseBuffer = audioContext.createBuffer(1, Math.floor(audioContext.sampleRate * 2.4), audioContext.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noiseData.length; index += 1) noiseData[index] = (Math.random() * 2 - 1) * .16;
+  const noise = audioContext.createBufferSource();
+  const noiseFilter = audioContext.createBiquadFilter();
+  const noiseGain = audioContext.createGain();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+  noiseFilter.type = "lowpass";
+  noiseFilter.frequency.value = 380;
+  noiseGain.gain.value = .055;
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(bedGain);
+
+  low.start(now);
+  high.start(now);
+  noise.start(now);
+  posterAmbientGain = bedGain;
+  posterAmbientSources = [low, high, noise];
+}
+
+function transitionWildsIntoPoster() {
+  if (activeTrackId !== "fragment-03") return;
+  if (activeAudio) {
+    fadeMediaVolume(activeAudio, muted ? 0 : POSTER_WILDS_VOLUME, reducedMotion ? 30 : 1900);
+  }
+  clearTimeout(posterAmbientTimer);
+  posterAmbientTimer = setTimeout(startPosterAmbience, reducedMotion ? 0 : 650);
+}
+
+function stopTimelineAudio(immediate = false) {
+  if (!timelineAudio) return;
+  const media = timelineAudio;
+  const finish = () => {
+    media.pause();
+    media.currentTime = 0;
+    if (timelineAudio === media) timelineAudio = undefined;
+  };
+  if (immediate || reducedMotion) {
+    finish();
+    return;
+  }
+  const startVolume = media.volume;
+  const startedAt = performance.now();
+  const step = now => {
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / 460));
+    media.volume = startVolume * (1 - progress);
+    if (progress < 1) {
+      timelineAudioFadeFrame = requestAnimationFrame(step);
+    } else {
+      timelineAudioFadeFrame = undefined;
+      finish();
+    }
+  };
+  if (timelineAudioFadeFrame) cancelAnimationFrame(timelineAudioFadeFrame);
+  timelineAudioFadeFrame = requestAnimationFrame(step);
+}
+
+function playTimelineAudio(item) {
+  if (!item.audioSrc) return;
+  stopPosterAmbience();
+  if (activeAudio) {
+    const wildsAudio = activeAudio;
+    fadeMediaVolume(wildsAudio, 0, reducedMotion ? 20 : 620, () => {
+      if (activeAudio === wildsAudio) {
+        wildsAudio.pause();
+        activeAudio = null;
+      }
+    });
+  }
+  stopTimelineAudio(true);
+  const media = new Audio(item.audioSrc);
+  const targetVolume = muted ? 0 : (item.audioVolume ?? .32);
+  media.volume = 0;
+  timelineAudio = media;
+  media.play().then(() => {
+    const startedAt = performance.now();
+    const fade = now => {
+      const progress = Math.min(1, (now - startedAt) / (reducedMotion ? 30 : 560));
+      if (timelineAudio !== media) return;
+      media.volume = targetVolume * progress;
+      if (progress < 1) timelineAudioFadeFrame = requestAnimationFrame(fade);
+    };
+    timelineAudioFadeFrame = requestAnimationFrame(fade);
+  }).catch(() => {
+    if (timelineAudio === media) timelineAudio = undefined;
+  });
+  media.addEventListener("ended", () => {
+    if (timelineAudio === media) {
+      timelineAudio = undefined;
+      startPosterAmbience();
+    }
+  }, { once: true });
+}
+
 function stopAudio() {
   stopWildsSequence();
+  stopPosterAmbience(true);
+  stopTimelineAudio(true);
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.currentTime = 0;
@@ -643,6 +823,7 @@ function renderTimelineMemoryContent(item) {
 
 function openTimelineMemory(item, sticker) {
   closeFilmReel();
+  playTimelineAudio(item);
   clearTimeout(timelineCloseTimer);
   renderTimelineMemoryContent(item);
   activeTimelineSticker?.classList.remove("memory-source", "returning");
@@ -666,6 +847,8 @@ function openTimelineMemory(item, sticker) {
 
 function closeTimelineMemory(immediate = false) {
   if (timelineMemory.getAttribute("aria-hidden") === "true") return;
+  stopTimelineAudio(immediate);
+  if (!immediate) window.setTimeout(startPosterAmbience, reducedMotion ? 0 : 480);
   clearTimeout(timelineCloseTimer);
   const finish = () => {
     timelineMemory.classList.remove("open", "closing");
@@ -700,6 +883,7 @@ function toggleFilmReel() {
 
 function closePosterScene() {
   closeTimelineMemory(true);
+  stopPosterAmbience();
   closeFilmReel();
   posterReveal.classList.remove("open");
   window.setTimeout(() => {
@@ -720,6 +904,7 @@ function openPosterScene() {
   if (!wildsChibiEntry.classList.contains("visible")) return;
   posterReveal.setAttribute("aria-hidden", "false");
   posterReveal.classList.add("opening");
+  transitionWildsIntoPoster();
   requestAnimationFrame(() => posterReveal.classList.add("open"));
 }
 
@@ -1032,7 +1217,17 @@ sound.addEventListener("click", () => {
   muted = !muted;
   initializeAudio();
   if (masterGain && audioContext) masterGain.gain.setTargetAtTime(muted ? 0 : .12, audioContext.currentTime, .08);
-  if (activeAudio) activeAudio.volume = muted ? 0 : .42;
+  if (activeAudio) {
+    activeAudio.volume = muted ? 0 : (
+      posterReveal.classList.contains("open") && activeTrackId === "fragment-03"
+        ? POSTER_WILDS_VOLUME
+        : TRACK_VOLUME
+    );
+  }
+  if (timelineAudio) timelineAudio.volume = muted ? 0 : .32;
+  if (posterAmbientGain && audioContext) {
+    posterAmbientGain.gain.setTargetAtTime(muted ? .0001 : .115, audioContext.currentTime, .14);
+  }
   if (muted) {
     pauseIntroAudio(false);
   } else if (!stage.classList.contains("entered")) {
