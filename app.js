@@ -57,6 +57,7 @@ let lastSparkBurstAt = 0;
 const activeBurstParticles = new Set();
 let wildsRunId = 0;
 let grassFadeTimer;
+let grassRevealTimers = [];
 let activeTrackId = null;
 let wildsAnimations = [];
 let wildsTimers = [];
@@ -522,17 +523,37 @@ function showWildsEntry() {
   wildsChibiEntry.setAttribute("aria-hidden", "false");
 }
 
+function cancelGrassReveal() {
+  grassRevealTimers.forEach(timer => clearTimeout(timer));
+  grassRevealTimers = [];
+}
+
 function showGrassMessage() {
   if (activeTrackId !== "fragment-02" || !stage.classList.contains("entered")) return;
   clearTimeout(grassFadeTimer);
+  cancelGrassReveal();
+  const lines = [...grassMessage.querySelectorAll(".grass-line")];
+  lines.forEach(line => line.classList.remove("is-revealed"));
   grassMessage.classList.remove("exiting", "visible");
   stage.classList.add("grass-moment");
   void grassMessage.offsetWidth;
   grassMessage.classList.add("visible");
+  const revealDelays = reducedMotion ? [0, 0, 0, 0, 0] : [80, 320, 660, 940, 1260];
+  lines.forEach((line, index) => {
+    const timer = window.setTimeout(() => {
+      if (
+        activeTrackId === "fragment-02"
+        && grassMessage.classList.contains("visible")
+        && !grassMessage.classList.contains("exiting")
+      ) line.classList.add("is-revealed");
+    }, revealDelays[index]);
+    grassRevealTimers.push(timer);
+  });
 }
 
 function hideGrassMessage() {
   clearTimeout(grassFadeTimer);
+  cancelGrassReveal();
   stage.classList.remove("grass-moment");
   if (!grassMessage.classList.contains("visible") && !grassMessage.classList.contains("exiting")) {
     grassMessage.classList.remove("visible");

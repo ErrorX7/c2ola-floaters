@@ -1265,11 +1265,21 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
     white-space: nowrap;
   }
   .grass-line.grass-gap, .grass-line.grass-final { margin-top: .58em; }
-  .grass-message.visible .grass-line:nth-child(1) { animation-delay: .08s; }
-  .grass-message.visible .grass-line:nth-child(2) { animation-delay: .3s; }
-  .grass-message.visible .grass-line:nth-child(3) { animation-delay: .56s; }
-  .grass-message.visible .grass-line:nth-child(4) { animation-delay: .82s; }
-  .grass-message.visible .grass-line:nth-child(5) { animation-delay: 1.12s; }
+  .grass-message.visible .grass-line {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+    animation: none !important;
+    transition: opacity .78s ease, transform .78s ease, filter .78s ease;
+  }
+  .grass-message.visible .grass-line.is-revealed {
+    opacity: .9;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  .grass-message.visible .grass-final.is-revealed { opacity: 1; }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }
