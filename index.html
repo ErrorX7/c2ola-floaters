@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
-  <link rel="stylesheet" href="styles.css?v=20260910a" />
+  <link rel="stylesheet" href="styles.css?v=20260910c" />
 </head>
 <body>
   <main class="stage" id="stage">
@@ -117,6 +117,17 @@
         <div class="wilds-lines" id="wildsLines"></div>
         <div class="wilds-word" id="wildsWord"><span>THE</span><span>WILDS</span></div>
       </div>
+      <button class="wilds-chibi-entry" id="wildsChibiEntry" type="button" aria-label="掀开隐藏的巡演海报">
+        <img src="wilds-chibi.webp?v=20260910c" alt="" />
+        <span>掀开看看</span>
+      </button>
+      <section class="poster-reveal" id="posterReveal" aria-hidden="true" aria-label="小酷巡演海报">
+        <div class="paper-corner" aria-hidden="true"></div>
+        <article class="poster-sheet">
+          <button class="poster-close" id="posterClose" type="button" aria-label="收起巡演海报">×</button>
+          <img src="tour-poster.jpg?v=20260910c" alt="小酷 2026 巡演海报" />
+        </article>
+      </section>
       <div class="fragment-caption" id="fragmentCaption" aria-live="polite">
         <small id="fragmentOrder">FRAGMENT 01</small>
         <strong id="fragmentTitle">灯火</strong>
@@ -143,6 +154,6 @@
     <div class="vignette"></div>
   </main>
   <audio id="introAudio" src="intro.mp3?v=20260909g" preload="auto" loop playsinline></audio>
-  <script type="module" src="app.js?v=20260910b"></script>
+  <script type="module" src="app.js?v=20260910c"></script>
 </body>
 </html>

@@ -22,6 +22,9 @@ const fragmentProgress = document.querySelector("#fragmentProgress");
 const worldHint = document.querySelector("#worldHint");
 const wildsFormation = document.querySelector("#wildsFormation");
 const wildsLines = document.querySelector("#wildsLines");
+const wildsChibiEntry = document.querySelector("#wildsChibiEntry");
+const posterReveal = document.querySelector("#posterReveal");
+const posterClose = document.querySelector("#posterClose");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -463,7 +466,12 @@ function activateTrack(track, node) {
     : "占位声景 · 可在曲目配置中替换为真实片段";
   createRipple(node, track);
   playTrackAudio(track);
-  if (track.id === "fragment-03") startWildsSequence(activeAudio);
+  if (track.id === "fragment-03") {
+    showWildsEntry();
+    startWildsSequence(activeAudio);
+  } else {
+    hideWildsEntry();
+  }
 
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
@@ -480,6 +488,34 @@ function activateTrack(track, node) {
   }, track.placeholderTone.duration * 1000 + 250);
 }
 
+
+function showWildsEntry() {
+  wildsChibiEntry.classList.add("visible");
+  wildsChibiEntry.setAttribute("aria-hidden", "false");
+}
+
+function closePosterScene() {
+  posterReveal.classList.remove("open");
+  window.setTimeout(() => {
+    if (!posterReveal.classList.contains("open")) {
+      posterReveal.classList.remove("opening");
+      posterReveal.setAttribute("aria-hidden", "true");
+    }
+  }, reducedMotion ? 20 : 430);
+}
+
+function hideWildsEntry() {
+  wildsChibiEntry.classList.remove("visible");
+  wildsChibiEntry.setAttribute("aria-hidden", "true");
+  closePosterScene();
+}
+
+function openPosterScene() {
+  if (!wildsChibiEntry.classList.contains("visible")) return;
+  posterReveal.setAttribute("aria-hidden", "false");
+  posterReveal.classList.add("opening");
+  requestAnimationFrame(() => posterReveal.classList.add("open"));
+}
 
 function createWildsTargets(count) {
   const width = Math.max(320, window.innerWidth);
@@ -724,6 +760,16 @@ guidingLamp.addEventListener("click", () => {
   if (track && node) activateTrack(track, node);
 });
 
+wildsChibiEntry.addEventListener("click", event => {
+  event.stopPropagation();
+  openPosterScene();
+});
+
+posterClose.addEventListener("click", event => {
+  event.stopPropagation();
+  closePosterScene();
+});
+
 world.addEventListener("click", event => {
   if (!event.target.closest(".spark")) {
     document.querySelectorAll(".spark.open").forEach(item => item.classList.remove("open"));
@@ -738,6 +784,7 @@ reset.addEventListener("click", () => {
   sparkField.replaceChildren();
   activeBurstParticles.clear();
   textSparksReleased = false;
+  hideWildsEntry();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();
