@@ -28,6 +28,7 @@ const posterClose = document.querySelector("#posterClose");
 const posterFoldEntry = document.querySelector("#posterFoldEntry");
 const posterDetail = document.querySelector("#posterDetail");
 const posterDetailClose = document.querySelector("#posterDetailClose");
+const grassMessage = document.querySelector("#grassMessage");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -475,6 +476,11 @@ function activateTrack(track, node) {
   } else {
     hideWildsEntry();
   }
+  if (track.id === "fragment-02") {
+    showGrassMessage();
+  } else {
+    hideGrassMessage();
+  }
 
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
@@ -495,6 +501,18 @@ function activateTrack(track, node) {
 function showWildsEntry() {
   wildsChibiEntry.classList.add("visible");
   wildsChibiEntry.setAttribute("aria-hidden", "false");
+}
+
+function showGrassMessage() {
+  stage.classList.add("grass-moment");
+  grassMessage.classList.remove("visible");
+  void grassMessage.offsetWidth;
+  grassMessage.classList.add("visible");
+}
+
+function hideGrassMessage() {
+  grassMessage.classList.remove("visible");
+  stage.classList.remove("grass-moment");
 }
 
 function closePosterDetail() {
@@ -815,6 +833,7 @@ reset.addEventListener("click", () => {
   activeBurstParticles.clear();
   textSparksReleased = false;
   hideWildsEntry();
+  hideGrassMessage();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();

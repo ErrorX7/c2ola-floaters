@@ -843,6 +843,14 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 }
 .poster-reveal.open .poster-close { opacity: .85; transition-delay: 1.35s; }
 .poster-close:hover, .poster-close:focus-visible { background: #fff; transform: rotate(10deg) scale(1.08); }
+@keyframes grass-line-in {
+  to { opacity: .9; transform: translateY(0); filter: blur(0); }
+}
+@keyframes grass-final-in {
+  0% { opacity: 0; transform: translateY(10px); filter: blur(6px); }
+  65% { opacity: .88; }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
 @keyframes chibi-drift { to { translate: 0 -7px; rotate: 1deg; } }
 @keyframes paper-corner-peel {
   0% { opacity: 0; transform: rotate(-8deg) scale(.14); }
@@ -856,6 +864,76 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   58% { right: 24%; bottom: 18%; opacity: 1; transform: rotate(-3.5deg) scale(.78); clip-path: polygon(8% 98%,3% 79%,7% 58%,2% 42%,5% 22%,1% 6%,35% 3%,65% 0,96% 4%,100% 42%,97% 72%,100% 100%); }
   100% { right: 50%; bottom: 50%; opacity: 1; transform: translate(50%,50%) rotate(-.8deg) scale(1); clip-path: polygon(3% 2%,25% 0,38% 2%,55% 0,78% 1%,98% 0,100% 16%,98% 31%,100% 48%,98% 68%,100% 96%,81% 100%,67% 98%,49% 100%,30% 98%,1% 100%,0 82%,2% 64%,0 48%,2% 28%,0 12%); }
 }
+
+.grass-message {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 1.25rem;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  isolation: isolate;
+}
+.grass-message::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  width: min(74vw, 620px);
+  height: min(48vh, 390px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(188,219,204,.085), rgba(87,118,111,.035) 36%, transparent 72%);
+  filter: blur(26px);
+  opacity: 0;
+  transition: opacity 1.7s ease;
+}
+.grass-message.visible {
+  visibility: visible;
+  opacity: 1;
+}
+.grass-message.visible::before { opacity: 1; }
+.grass-message-copy {
+  position: relative;
+  z-index: 1;
+  width: min(78vw, 580px);
+  color: #dce4e8;
+  text-align: center;
+  font: 400 clamp(.92rem, 1.65vw, 1.12rem)/2.05 "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  letter-spacing: .075em;
+  text-shadow: 0 1px 18px rgba(1,5,13,.75);
+}
+.grass-line {
+  display: block;
+  opacity: 0;
+  transform: translateY(9px);
+  filter: blur(5px);
+  will-change: opacity, transform, filter;
+}
+.grass-message.visible .grass-line {
+  animation: grass-line-in 1.05s cubic-bezier(.18,.72,.22,1) forwards;
+}
+.grass-message.visible .grass-line:nth-child(1) { animation-delay: .12s; }
+.grass-message.visible .grass-line:nth-child(2) { animation-delay: .52s; }
+.grass-message.visible .grass-line:nth-child(3) { animation-delay: 1.18s; }
+.grass-message.visible .grass-line:nth-child(4) { animation-delay: 1.6s; }
+.grass-message.visible .grass-line:nth-child(5) { animation-delay: 2.2s; }
+.grass-line.grass-gap { margin-top: .85em; }
+.grass-line.grass-final {
+  margin-top: .9em;
+  color: #d8f2df;
+  font-weight: 400;
+  text-shadow: 0 0 20px rgba(176,218,188,.18);
+}
+.grass-message.visible .grass-final { animation-name: grass-final-in; }
+.stage.grass-moment .floater-field .ambient-floater {
+  opacity: .48 !important;
+}
+.stage.grass-moment .world-haze,
+.stage.grass-moment .depth-ring { opacity: .52; transition: opacity 1.25s ease; }
 
 .track-nodes, .floater-field { position: absolute; inset: 0; }
 .track-nodes { z-index: 14; pointer-events: none; }
@@ -1130,6 +1208,10 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .wilds-chibi-entry span { font-size: .57rem; }
   .poster-sheet { --poster-pad: .34rem; width: min(90vw,430px,58dvh); padding: var(--poster-pad); }
   .poster-detail-paper { width: min(92vw,59dvh); margin: 2vh auto; }
+  .grass-message { padding: 0 .8rem; }
+  .grass-message-copy { width: 74vw; font-size: clamp(.82rem, 3.25vw, 1rem); line-height: 2.08; letter-spacing: .045em; }
+  .grass-message::before { width: 86vw; height: 42vh; filter: blur(22px); }
+  .grass-line.grass-gap, .grass-line.grass-final { margin-top: .72em; }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }
