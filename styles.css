@@ -674,7 +674,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   z-index: 2;
   right: -11vw;
   bottom: -15vh;
-  width: min(66vw, 560px);
+  width: min(66vw, 560px, 56vh);
   margin: 0;
   padding: clamp(.4rem, .85vw, .65rem);
   background: #dddcd5;
@@ -783,7 +783,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 }
 .poster-detail-paper {
   position: relative;
-  width: min(76vw, 840px);
+  width: min(76vw, 840px, 62vh);
   margin: 5vh auto;
   padding: clamp(.3rem, .65vw, .55rem);
   background: #e7e5df;
@@ -1128,7 +1128,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .spark[data-spark-id="spark-03"] { --spark-x: 57% !important; --spark-y: 44% !important; }
   .wilds-chibi-entry { right: max(.8rem,env(safe-area-inset-right)); bottom: max(1rem,env(safe-area-inset-bottom)); width: clamp(58px,18vw,76px); }
   .wilds-chibi-entry span { font-size: .57rem; }
-  .poster-sheet { width: min(90vw,430px); padding: .34rem; }
+  .poster-sheet { width: min(90vw,430px,58dvh); padding: .34rem; }
+  .poster-detail-paper { width: min(92vw,59dvh); margin: 2vh auto; }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }
