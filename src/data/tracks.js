@@ -96,3 +96,217 @@ export const tracks = [
     placeholderTone: { baseFrequency: 261.63, intervals: [1, 1.333, 1.667], duration: 7 }
   }
 ];
+
+// GOOD NEWS keeps the existing floater lifecycle, but replaces the rigid straight
+// staff with a softer hand-drawn curve inspired by the reference image.
+function installGoodnewsCurvedScore() {
+  const scene = document.querySelector("#goodnewsScene");
+  const original = document.querySelector("#goodnewsCanvas");
+  if (!scene || !original || document.querySelector("#goodnewsCurvedCanvas")) return;
+
+  original.style.visibility = "hidden";
+  const canvas = document.createElement("canvas");
+  canvas.id = "goodnewsCurvedCanvas";
+  canvas.className = "goodnews-canvas goodnews-curved-canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.position = "absolute";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.pointerEvents = "none";
+  canvas.style.background = "transparent";
+  original.insertAdjacentElement("afterend", canvas);
+
+  const ctx = canvas.getContext("2d");
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let frame = 0;
+  let startedAt = 0;
+  let particles = [];
+  let running = false;
+
+  const ease = value => {
+    const n = Math.max(0, Math.min(1, value));
+    return n * n * (3 - 2 * n);
+  };
+
+  function curvePoint(t, line = 0) {
+    // Left side glides almost horizontally, then rises decisively toward the
+    // upper-right like a ribbon of sheet music.
+    const bend = Math.pow(Math.max(0, (t - .36) / .64), 1.58);
+    const x = -.5 + t;
+    const y = .64 - bend * 4.55 + Math.sin(t * Math.PI * 1.18) * .10 + line;
+    const slope = -7.1 * Math.pow(Math.max(.001, (t - .36) / .64), .58) / .64
+      + Math.cos(t * Math.PI * 1.18) * .118 * Math.PI;
+    return { x, y, angle: Math.atan2(slope, 1) };
+  }
+
+  function makeTargets() {
+    const mobile = window.innerWidth <= 680;
+    const targets = [];
+    const linePoints = mobile ? 36 : 54;
+    for (let line = -2; line <= 2; line += 1) {
+      for (let i = 0; i < linePoints; i += 1) {
+        const t = i / (linePoints - 1);
+        const p = curvePoint(t, line);
+        targets.push({
+          nx: p.x,
+          unitY: p.y,
+          shape: i % 4 === 0 ? "dot" : "dash",
+          angle: p.angle,
+          note: false,
+          weight: .7
+        });
+      }
+    }
+
+    const notes = mobile
+      ? [[.18, .9, false], [.43, -.55, true], [.64, .75, false], [.80, -.5, true]]
+      : [[.13, 1.0, false], [.34, -.75, true], [.55, 1.2, false], [.72, -.1, true], [.86, .72, false]];
+
+    notes.forEach(([t, offset, flagged], noteIndex) => {
+      const base = curvePoint(t, offset);
+      const stemUp = noteIndex % 3 !== 2;
+      const headRadius = mobile ? .014 : .012;
+
+      for (let i = 0; i < 13; i += 1) {
+        const a = i / 13 * Math.PI * 2;
+        targets.push({
+          nx: base.x + Math.cos(a) * headRadius,
+          unitY: base.y + Math.sin(a) * .24,
+          shape: "dot",
+          angle: 0,
+          note: true,
+          weight: 1.2
+        });
+      }
+      for (let i = 0; i < 9; i += 1) {
+        targets.push({
+          nx: base.x + (stemUp ? .013 : -.013),
+          unitY: base.y - (stemUp ? 1 : -1) * i * .27,
+          shape: "dash",
+          angle: Math.PI / 2,
+          note: true,
+          weight: 1.05
+        });
+      }
+      if (flagged) {
+        for (let i = 0; i < 8; i += 1) {
+          targets.push({
+            nx: base.x + (stemUp ? .015 : -.015) + (stemUp ? 1 : -1) * i * .010,
+            unitY: base.y - (stemUp ? 1 : -1) * 2.08 + Math.sin(i / 7 * Math.PI) * .27,
+            shape: i % 2 ? "dot" : "dash",
+            angle: stemUp ? -.48 : .48,
+            note: true,
+            weight: 1
+          });
+        }
+      }
+    });
+    return targets;
+  }
+
+  function resetParticles() {
+    particles = makeTargets().map((target, index) => ({
+      ...target,
+      startX: Math.random(),
+      startY: Math.random(),
+      phase: Math.random() * Math.PI * 2,
+      speed: .00055 + Math.random() * .00065,
+      opacity: .5 + Math.random() * .42,
+      size: (target.note ? .95 : .68) + Math.random() * (target.note ? 1.1 : .72),
+      length: (target.note ? 4.5 : 5.5) + Math.random() * 5.5,
+      delay: (index % 19) * 17 + Math.random() * 260
+    }));
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(rect.width * ratio));
+    const h = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return rect;
+  }
+
+  function draw(timestamp) {
+    if (!running) return;
+    const rect = resize();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    const elapsed = timestamp - startedAt;
+    const mobile = rect.width <= 680;
+    const staffWidth = Math.min(rect.width * (mobile ? .92 : .79), 980);
+    const gap = Math.min(rect.height * (mobile ? .038 : .048), mobile ? 22 : 34);
+    const centerX = rect.width * (mobile ? .48 : .49);
+    const centerY = rect.height * (mobile ? .55 : .59);
+    const settled = ease((elapsed - 650) / 5000);
+    const floatAmount = ease((elapsed - 5000) / 1500);
+    const driftX = Math.sin(elapsed * .00043) * 5.5 * floatAmount;
+    const driftY = Math.cos(elapsed * .00052) * 7 * floatAmount;
+
+    particles.forEach(p => {
+      const individual = reducedMotion ? 1 : ease((elapsed - 520 - p.delay) / 4700);
+      const tx = centerX + p.nx * staffWidth + driftX;
+      const ty = centerY + p.unitY * gap + driftY;
+      const arcX = Math.sin(individual * Math.PI + p.phase) * (1 - individual) * 38;
+      const arcY = Math.cos(individual * Math.PI * 1.45 + p.phase) * (1 - individual) * 28;
+      const wobbleX = Math.sin(timestamp * p.speed + p.phase) * (1.4 + (1 - settled) * 6);
+      const wobbleY = Math.cos(timestamp * p.speed * .81 + p.phase) * (1.2 + (1 - settled) * 5);
+      const x = p.startX * rect.width * (1 - individual) + tx * individual + arcX + wobbleX;
+      const y = p.startY * rect.height * (1 - individual) + ty * individual + arcY + wobbleY;
+      const alpha = p.opacity * (.18 + individual * .82);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(255,255,255,.98)";
+      ctx.strokeStyle = "rgba(255,255,255,.95)";
+      ctx.shadowColor = p.note ? "rgba(220,235,255,.72)" : "rgba(205,228,255,.44)";
+      ctx.shadowBlur = p.note ? 6.5 : 3.2;
+      ctx.lineCap = "round";
+      if (p.shape === "dot") {
+        ctx.beginPath();
+        ctx.arc(x, y, p.size * (p.note ? 1.18 : 1), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const angle = p.angle + (1 - individual) * Math.sin(p.phase) * .65;
+        ctx.lineWidth = Math.max(.9, p.size * .78 * p.weight);
+        ctx.beginPath();
+        ctx.moveTo(x - Math.cos(angle) * p.length * .5, y - Math.sin(angle) * p.length * .5);
+        ctx.lineTo(x + Math.cos(angle) * p.length * .5, y + Math.sin(angle) * p.length * .5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+    frame = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    startedAt = performance.now();
+    resetParticles();
+    frame = requestAnimationFrame(draw);
+  }
+
+  function stop() {
+    running = false;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  const sync = () => {
+    if (scene.classList.contains("visible")) start();
+    else stop();
+  };
+  new MutationObserver(sync).observe(scene, { attributes: true, attributeFilter: ["class"] });
+  window.addEventListener("resize", () => {
+    if (running) resetParticles();
+  }, { passive: true });
+  sync();
+}
+
+installGoodnewsCurvedScore();
