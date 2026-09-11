@@ -1229,6 +1229,76 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .stage.grass-moment .world-haze,
 .stage.grass-moment .depth-ring { opacity: .52; transition: opacity 1.25s ease; }
 
+.dawn-scene {
+  position: absolute;
+  z-index: 21;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 50% 49%, rgba(35, 85, 125, .22), transparent 29%),
+    radial-gradient(ellipse at 18% 22%, rgba(84, 127, 190, .11), transparent 27%),
+    radial-gradient(ellipse at 85% 77%, rgba(55, 104, 146, .1), transparent 25%),
+    rgba(1, 5, 16, .87);
+  transition: opacity 1.15s ease, visibility 1.15s step-end;
+}
+.dawn-scene::before,
+.dawn-scene::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.dawn-scene::before {
+  inset: 0;
+  opacity: .34;
+  background-image: radial-gradient(circle, rgba(204, 232, 255, .62) 0 1px, transparent 1.5px);
+  background-size: 113px 127px;
+  mask-image: radial-gradient(ellipse at center, #000, transparent 76%);
+}
+.dawn-scene::after {
+  inset: -12%;
+  background: radial-gradient(ellipse, transparent 38%, rgba(0, 2, 10, .52) 100%);
+}
+.dawn-scene.visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 1.15s ease;
+}
+.dawn-canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.dawn-caption {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  width: min(88vw, 42rem);
+  margin: 0;
+  padding: 0 .6rem;
+  color: rgba(235, 241, 255, .82);
+  font: 400 clamp(.74rem, 1.35vw, 1rem)/1.7 Georgia, "Songti SC", serif;
+  letter-spacing: .13em;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(255, 209, 142, .48);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity .8s ease .7s, transform .8s ease .7s;
+}
+.dawn-scene.visible .dawn-caption {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.stage.dawn-moment .floater-field .ambient-floater { opacity: .16 !important; }
+.stage.dawn-moment .fragment-caption,
+.stage.dawn-moment .world-hint { opacity: 0; }
+
 .track-nodes, .floater-field { position: absolute; inset: 0; }
 .track-nodes { z-index: 14; pointer-events: none; }
 .floater-field { z-index: 12; pointer-events: none; }
@@ -1578,6 +1648,12 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
     filter: blur(0);
   }
   .grass-message.visible .grass-final.is-revealed { opacity: 1; }
+  .dawn-caption {
+    bottom: max(.85rem, env(safe-area-inset-bottom));
+    width: calc(100% - 1.5rem);
+    font-size: clamp(.7rem, 3.1vw, .9rem);
+    letter-spacing: .1em;
+  }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }

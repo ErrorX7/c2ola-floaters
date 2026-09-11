@@ -36,6 +36,8 @@ const timelineMemoryClose = document.querySelector("#timelineMemoryClose");
 const timelineMemoryContent = document.querySelector("#timelineMemoryContent");
 const timelineMemoryCaption = document.querySelector("#timelineMemoryCaption");
 const grassMessage = document.querySelector("#grassMessage");
+const dawnScene = document.querySelector("#dawnScene");
+const dawnCanvas = document.querySelector("#dawnCanvas");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -79,6 +81,9 @@ let posterTrackFadeFrame;
 let timelineAudio;
 let timelineAudioFadeFrame;
 let timelineVideo;
+let dawnFrame;
+let dawnRunId = 0;
+let dawnParticles = [];
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -701,11 +706,17 @@ function activateTrack(track, node) {
   } else {
     hideGrassMessage();
   }
+  if (track.id === "fragment-05") {
+    startDawnScene(activeAudio);
+  } else {
+    stopDawnScene();
+  }
 
+  const visualDuration = track.id === "fragment-05" ? 16000 : track.placeholderTone.duration * 1000;
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
     [{ width: "0%", opacity: 1 }, { width: "100%", opacity: 1 }, { width: "100%", opacity: 0 }],
-    { duration: track.placeholderTone.duration * 1000, easing: "linear", fill: "forwards" }
+    { duration: visualDuration, easing: "linear", fill: "forwards" }
   );
   clearTimeout(fragmentTimer);
   fragmentTimer = setTimeout(() => {
@@ -714,7 +725,189 @@ function activateTrack(track, node) {
     world.classList.remove("fragment-active");
     fragmentCaption.classList.remove("visible");
     worldHint.textContent = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
-  }, track.placeholderTone.duration * 1000 + 250);
+  }, visualDuration + 250);
+}
+
+function dawnEase(value) {
+  const clamped = Math.max(0, Math.min(1, value));
+  return clamped * clamped * (3 - 2 * clamped);
+}
+
+function dawnMix(start, end, amount) {
+  return start + (end - start) * amount;
+}
+
+function dawnPlanePoint(index, total) {
+  const outline = [
+    [1, 0], [.16, -.12], [-.06, -.6], [-.2, -.6], [-.14, -.1], [-.9, -.18], [-1, -.34],
+    [-.96, 0], [-1, .34], [-.9, .18], [-.14, .1], [-.2, .6], [-.06, .6], [.16, .12]
+  ];
+  const progress = index / total * outline.length;
+  const base = Math.floor(progress) % outline.length;
+  const next = (base + 1) % outline.length;
+  const amount = progress - Math.floor(progress);
+  return {
+    x: dawnMix(outline[base][0], outline[next][0], amount),
+    y: dawnMix(outline[base][1], outline[next][1], amount)
+  };
+}
+
+function createDawnParticles() {
+  dawnParticles = Array.from({ length: reducedMotion ? 34 : 72 }, (_, index) => {
+    const group = index % 2;
+    const angle = Math.random() * Math.PI * 2;
+    const spread = Math.pow(Math.random(), .65);
+    return {
+      group,
+      angle,
+      spread,
+      size: 1.4 + Math.random() * 2.7,
+      drift: Math.random() * Math.PI * 2,
+      twinkle: .48 + Math.random() * .52,
+      mergeX: (Math.random() - .5) * .15,
+      mergeY: (Math.random() - .5) * .11,
+      plane: dawnPlanePoint(index, reducedMotion ? 34 : 72)
+    };
+  });
+}
+
+function drawDawnEarth(context, width, height, progress) {
+  const mobile = width <= 680;
+  const radius = Math.min(width, height) * (mobile ? .155 : .19);
+  const x = width * .5;
+  const y = height * .49;
+  const appear = dawnEase(progress / .12);
+  context.save();
+  context.globalAlpha = appear;
+  context.translate(x, y);
+  context.scale(.92 + appear * .08, .92 + appear * .08);
+  const globe = context.createRadialGradient(-radius * .26, -radius * .32, radius * .08, 0, 0, radius);
+  globe.addColorStop(0, "#6fadd5");
+  globe.addColorStop(.48, "#1e557e");
+  globe.addColorStop(1, "#06162d");
+  context.fillStyle = globe;
+  context.shadowColor = "rgba(103, 190, 225, .62)";
+  context.shadowBlur = radius * .32;
+  context.beginPath();
+  context.arc(0, 0, radius, 0, Math.PI * 2);
+  context.fill();
+  context.shadowBlur = 0;
+  context.save();
+  context.beginPath();
+  context.arc(0, 0, radius * .94, 0, Math.PI * 2);
+  context.clip();
+  context.rotate(progress * .9);
+  context.fillStyle = "rgba(138, 215, 165, .8)";
+  [[-.38, -.27, .32, .2], [.27, -.12, .28, .16], [.02, .3, .38, .19], [-.5, .36, .2, .12]].forEach(([cx, cy, rx, ry]) => {
+    context.beginPath();
+    context.ellipse(cx * radius, cy * radius, rx * radius, ry * radius, -.45, 0, Math.PI * 2);
+    context.fill();
+  });
+  context.strokeStyle = "rgba(197, 238, 222, .35)";
+  context.lineWidth = Math.max(1, radius * .009);
+  [-.48, 0, .48].forEach(offset => {
+    context.beginPath();
+    context.ellipse(0, offset * radius, radius * .94, radius * .24, 0, 0, Math.PI * 2);
+    context.stroke();
+  });
+  context.restore();
+  context.strokeStyle = "rgba(191, 234, 247, .78)";
+  context.lineWidth = Math.max(1, radius * .014);
+  context.beginPath();
+  context.arc(0, 0, radius, 0, Math.PI * 2);
+  context.stroke();
+  context.restore();
+  return { x, y, radius };
+}
+
+function drawDawnParticle(context, x, y, particle, opacity, scale) {
+  const size = particle.size * scale;
+  context.save();
+  context.globalAlpha = opacity * particle.twinkle;
+  context.fillStyle = "rgba(223, 241, 255, .96)";
+  context.shadowColor = "rgba(130, 208, 255, .92)";
+  context.shadowBlur = size * 5;
+  [[0, 0, 1], [-.7, .18, .66], [.58, -.35, .62], [.16, .65, .55]].forEach(([dx, dy, factor]) => {
+    context.beginPath();
+    context.arc(x + dx * size, y + dy * size, size * factor, 0, Math.PI * 2);
+    context.fill();
+  });
+  context.restore();
+}
+
+function drawDawnScene(timestamp, runId, startedAt) {
+  if (runId !== dawnRunId) return;
+  const bounds = dawnCanvas.getBoundingClientRect();
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  if (dawnCanvas.width !== Math.round(bounds.width * ratio) || dawnCanvas.height !== Math.round(bounds.height * ratio)) {
+    dawnCanvas.width = Math.round(bounds.width * ratio);
+    dawnCanvas.height = Math.round(bounds.height * ratio);
+  }
+  const context = dawnCanvas.getContext("2d");
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  context.clearRect(0, 0, bounds.width, bounds.height);
+  const elapsed = timestamp - startedAt;
+  const progress = Math.min(1, elapsed / 16000);
+  const earth = drawDawnEarth(context, bounds.width, bounds.height, progress);
+  const approach = dawnEase((progress - .12) / .36);
+  const merge = dawnEase((progress - .48) / .13);
+  const plane = dawnEase((progress - .61) / .15);
+  const fly = dawnEase((progress - .76) / .21);
+  const leftStart = { x: bounds.width * .17, y: bounds.height * .22 };
+  const rightStart = { x: bounds.width * .84, y: bounds.height * .76 };
+  const leftNear = { x: earth.x - earth.radius * 1.14, y: earth.y - earth.radius * .4 };
+  const rightNear = { x: earth.x + earth.radius * 1.14, y: earth.y + earth.radius * .4 };
+  const planeScale = earth.radius * .92;
+  const planeAngle = -.48;
+  dawnParticles.forEach(particle => {
+    const start = particle.group === 0 ? leftStart : rightStart;
+    const near = particle.group === 0 ? leftNear : rightNear;
+    const clusterX = dawnMix(start.x, near.x, approach);
+    const clusterY = dawnMix(start.y, near.y, approach);
+    const swirl = earth.radius * (.42 + particle.spread * .78);
+    const initialX = clusterX + Math.cos(particle.angle) * swirl;
+    const initialY = clusterY + Math.sin(particle.angle) * swirl * .7;
+    const gatherX = earth.x + particle.mergeX * bounds.width;
+    const gatherY = earth.y + particle.mergeY * bounds.height;
+    let x = dawnMix(initialX, gatherX, merge);
+    let y = dawnMix(initialY, gatherY, merge);
+    const px = particle.plane.x * planeScale;
+    const py = particle.plane.y * planeScale;
+    const rotatedX = px * Math.cos(planeAngle) - py * Math.sin(planeAngle);
+    const rotatedY = px * Math.sin(planeAngle) + py * Math.cos(planeAngle);
+    const flightX = earth.x + rotatedX + fly * bounds.width * .42;
+    const flightY = earth.y + rotatedY - fly * bounds.height * .42;
+    x = dawnMix(x, flightX, plane);
+    y = dawnMix(y, flightY, plane);
+    const flutter = Math.sin(elapsed * .002 + particle.drift) * (plane > .78 ? 1.2 : 3.2);
+    const fade = progress > .87 ? 1 - dawnEase((progress - .87) / .13) : 1;
+    drawDawnParticle(context, x + flutter, y + Math.cos(elapsed * .0017 + particle.drift) * 2, particle, fade, plane > .58 ? 1.08 : 1);
+  });
+  if (progress < 1) dawnFrame = requestAnimationFrame(next => drawDawnScene(next, runId, startedAt));
+}
+
+function startDawnScene(audio) {
+  stopDawnScene();
+  const runId = ++dawnRunId;
+  createDawnParticles();
+  stage.classList.add("dawn-moment");
+  dawnScene.setAttribute("aria-hidden", "false");
+  dawnScene.classList.add("visible");
+  const startedAt = performance.now();
+  dawnFrame = requestAnimationFrame(next => drawDawnScene(next, runId, startedAt));
+  if (audio) audio.addEventListener("ended", () => {
+    if (runId === dawnRunId) stopDawnScene();
+  }, { once: true });
+}
+
+function stopDawnScene() {
+  dawnRunId += 1;
+  if (dawnFrame) cancelAnimationFrame(dawnFrame);
+  dawnFrame = undefined;
+  dawnParticles = [];
+  stage.classList.remove("dawn-moment");
+  dawnScene.classList.remove("visible");
+  dawnScene.setAttribute("aria-hidden", "true");
 }
 
 
@@ -1287,6 +1480,7 @@ reset.addEventListener("click", () => {
   activeTrackId = null;
   hideWildsEntry();
   hideGrassMessage();
+  stopDawnScene();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();
