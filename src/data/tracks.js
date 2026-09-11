@@ -44,8 +44,8 @@ export const tracks = [
     snippetSrc: "./lingchen.mp3?v=20260909a", fullAudioSrc: null,
     fragment: { experience: "dawn", audioDurationMs: 16222, visualDurationMs: 16222, postAudioHoldMs: 0, dismissOnBackground: true, autoDismiss: true },
     visualMood: { name: "glass", accent: "#cfdeff", accentRgb: "207, 222, 255", secondary: "#182c4c" },
-    nodeBehavior: { x: 51, y: 18, depth: .5, driftX: 8, driftY: 9, driftSeconds: 15 },
-    glowStyle: { rgb: "190, 211, 255", size: "95px", intensity: .72 },
+    nodeBehavior: { x: 51, y: 18, depth: .63, driftX: 8, driftY: 9, driftSeconds: 15 },
+    glowStyle: { rgb: "190, 211, 255", size: "105px", intensity: .76 },
     placeholderTone: { baseFrequency: 220, intervals: [1, 1.125, 1.5], duration: 6.5 }
   },
   {
