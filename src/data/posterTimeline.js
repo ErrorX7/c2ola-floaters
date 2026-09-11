@@ -15,10 +15,11 @@ export const posterTimeline = [
     id: 2,
     stickerSrc: "./timeline/sticker-02.webp?v=20260910a",
     year: "2019.6.14",
-    contentType: null,
-    contentSrc: null,
+    contentType: "image",
+    contentSrc: "./timeline/02-first-episode.jpg?v=20260911a",
     audioSrc: null,
     audioVolume: .32,
+    contentAlt: "2019.6.14 小酷 COOLa 第一期开播记录",
     position: { left: "74.7%", top: "28.1%", width: "17.2%", rotation: "5deg" },
     clipPath: "polygon(67% 0, 87% 3%, 99% 85%, 83% 99%, 66% 78%, 8% 76%, 0 58%, 62% 49%)"
   },
