@@ -17,6 +17,13 @@ export const posterTimeline = [
     year: "2019.6.14",
     contentType: "image",
     contentSrc: "./timeline/02-first-episode.jpg?v=20260911a",
+    flipTo: {
+      coverSrc: "./timeline/goahead-cover.jpg?v=20260911a",
+      videoSrc: "./timeline/goahead.mp4?v=20260911a",
+      playIconSrc: "./timeline/goahead-chibi.jpg?v=20260911a",
+      caption: "2026-08-01 杭州",
+      contentAlt: "2026-08-01 杭州现场视频"
+    },
     audioSrc: null,
     audioVolume: .32,
     contentAlt: "2019.6.14 小酷 COOLa 第一期开播记录",

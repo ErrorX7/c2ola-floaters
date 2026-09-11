@@ -1,6 +1,6 @@
 import { tracks } from "./src/data/tracks.js?v=20260911o";
 import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
-import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910d";
+import { posterTimeline } from "./src/data/posterTimeline.js?v=20260911e";
 
 const root = document.documentElement;
 const stage = document.querySelector("#stage");
@@ -1506,11 +1506,27 @@ function renderTimelineMemoryContent(item) {
   timelineMemoryContent.classList.remove("has-caption", "has-video");
   timelineMemoryPaper.classList.remove("has-video");
   if (item.contentType === "poster" || item.contentType === "image") {
+    const page = document.createElement("div");
+    page.className = "timeline-memory-page timeline-memory-image-page";
     const image = document.createElement("img");
     image.src = item.contentSrc;
     image.alt = item.contentAlt || item.year || "巡演回忆图片";
     image.draggable = false;
-    timelineMemoryContent.append(image);
+    page.append(image);
+    if (item.flipTo) {
+      const fold = document.createElement("button");
+      fold.type = "button";
+      fold.className = "timeline-page-fold";
+      fold.setAttribute("aria-label", "翻到下一页记忆");
+      fold.innerHTML = '<span>下一页</span>';
+      fold.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        renderTimelineVideoPreview(item);
+      });
+      page.append(fold);
+    }
+    timelineMemoryContent.append(page);
     return;
   }
   if (item.contentType === "video") {
@@ -1576,6 +1592,61 @@ function renderTimelineMemoryContent(item) {
     copy.textContent = item.contentText || "";
     timelineMemoryContent.append(copy);
   }
+}
+
+function renderTimelineVideoPreview(item) {
+  const page = item.flipTo;
+  if (!page) return;
+  stopTimelineVideo();
+  timelineMemoryContent.replaceChildren();
+  timelineMemoryContent.classList.add("has-video");
+  timelineMemoryPaper.classList.add("has-video");
+  timelineMemoryCaption.textContent = page.caption || "";
+  timelineMemoryCaption.classList.toggle("visible", Boolean(page.caption));
+
+  const videoStage = document.createElement("div");
+  videoStage.className = "timeline-video-stage timeline-flip-video-stage";
+  const video = document.createElement("video");
+  video.src = page.videoSrc;
+  video.poster = page.coverSrc || "";
+  video.controls = false;
+  video.playsInline = true;
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.preload = "metadata";
+  video.loop = false;
+  video.muted = muted;
+  video.setAttribute("aria-label", page.contentAlt || "现场视频");
+  timelineVideo = video;
+
+  const playButton = document.createElement("button");
+  playButton.className = "timeline-video-play timeline-flip-play";
+  playButton.type = "button";
+  playButton.setAttribute("aria-label", "点击小人头像播放视频");
+  const playIcon = document.createElement("img");
+  playIcon.src = page.playIconSrc;
+  playIcon.alt = "";
+  playIcon.draggable = false;
+  const playPrompt = document.createElement("span");
+  playPrompt.textContent = "点击播放";
+  playButton.append(playIcon, playPrompt);
+  playButton.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    playButton.disabled = true;
+    video.muted = muted;
+    video.controls = true;
+    video.play().then(() => videoStage.classList.add("is-playing")).catch(() => {
+      playButton.disabled = false;
+      video.controls = false;
+    });
+  });
+  video.addEventListener("ended", () => {
+    video.pause();
+    videoStage.classList.add("has-ended");
+  });
+  videoStage.append(video, playButton);
+  timelineMemoryContent.append(videoStage);
 }
 
 function openTimelineMemory(item, sticker) {

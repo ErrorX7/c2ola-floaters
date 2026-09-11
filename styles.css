@@ -985,6 +985,44 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   display: grid;
   place-items: center;
 }
+.timeline-memory-page {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.timeline-memory-image-page > img { position: relative; z-index: 1; }
+.timeline-page-fold {
+  position: absolute;
+  z-index: 5;
+  right: .15rem;
+  bottom: .15rem;
+  width: clamp(4.4rem, 16%, 7rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: end;
+  padding: 0 .48rem .52rem 0;
+  border: 0;
+  color: rgba(16,25,40,.8);
+  background: linear-gradient(135deg, transparent 0 48%, rgba(255,255,255,.98) 49% 67%, rgba(189,211,239,.95) 68% 100%);
+  clip-path: polygon(100% 0,100% 100%,0 100%);
+  filter: drop-shadow(-2px -2px 5px rgba(220,237,255,.72));
+  cursor: pointer;
+  transition: transform .24s ease, filter .24s ease;
+  touch-action: manipulation;
+}
+.timeline-page-fold::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 68%;
+  height: 68%;
+  background: linear-gradient(135deg, transparent 47%, rgba(123,153,194,.35) 48% 51%, rgba(255,255,255,.9) 52%);
+  clip-path: polygon(100% 0,100% 100%,0 100%);
+}
+.timeline-page-fold span { position: relative; z-index: 1; font: 600 .64rem/1 "Noto Sans SC","PingFang SC",sans-serif; letter-spacing: .04em; white-space: nowrap; }
+.timeline-page-fold:hover, .timeline-page-fold:focus-visible { transform: translate(-2px,-2px); filter: drop-shadow(-3px -3px 9px rgba(220,237,255,.95)); }
+.timeline-page-fold:focus-visible { outline: 2px solid #b9d9ff; outline-offset: 2px; }
 .timeline-memory-paper.has-video {
   width: min(84vw, 1050px, calc((100dvh - 4rem) * 1.7778));
   overflow: hidden;
@@ -1000,6 +1038,10 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   overflow: hidden;
   background: #05070d;
 }
+.timeline-flip-video-stage { animation: timeline-page-in .5s cubic-bezier(.18,.78,.2,1); }
+.timeline-flip-play { left: .85rem; right: auto; bottom: .85rem; transform-origin: bottom left; }
+.timeline-flip-play:hover, .timeline-flip-play:focus-visible { transform: scale(1.06); }
+@keyframes timeline-page-in { from { opacity: .25; transform: translateX(12px) rotate(1deg); } to { opacity: 1; transform: translateX(0) rotate(0); } }
 .timeline-memory-content .timeline-video-stage video {
   width: 100%;
   height: 100%;
