@@ -1,4 +1,4 @@
-import { tracks } from "./src/data/tracks.js?v=20260909n";
+import { tracks } from "./src/data/tracks.js?v=20260911o";
 import { sparkTexts } from "./src/data/sparkTexts.js?v=20260909n";
 import { posterTimeline } from "./src/data/posterTimeline.js?v=20260910d";
 
@@ -61,8 +61,6 @@ let audioContext;
 let masterGain;
 let activeAudio;
 let activeSources = [];
-let fragmentTimer;
-let progressAnimation;
 let nearestTimer;
 let blinkTimer;
 let muted = false;
@@ -85,7 +83,6 @@ let posterAmbientGain;
 let posterAmbientSources = [];
 let posterAmbientTimer;
 let posterAmbientStopTimer;
-let posterTrackFadeFrame;
 let timelineAudio;
 let timelineAudioFadeFrame;
 let timelineVideo;
@@ -102,6 +99,9 @@ let goodnewsRunId = 0;
 let goodnewsParticles = [];
 let goodnewsStartedAt = 0;
 let goodnewsFormTimer;
+let activeTrackGain;
+let activeFragment = null;
+let fragmentActivationRequest = 0;
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -124,7 +124,10 @@ function renderTrackNodes() {
     node.style.setProperty("--node-dy", `${behavior.driftY}px`);
     node.style.setProperty("--node-rotate", `${index % 2 ? -8 : 7}deg`);
     node.innerHTML = `<span class="node-number">${String(track.order).padStart(2, "0")}</span>`;
-    node.addEventListener("click", () => activateTrack(track, node));
+    node.addEventListener("click", event => {
+      event.stopPropagation();
+      activateTrack(track, node);
+    });
     trackNodes.append(node);
   });
 }
@@ -413,24 +416,233 @@ function fadeOutIntro(duration = 680) {
 }
 
 const TRACK_VOLUME = .42;
-const POSTER_WILDS_VOLUME = .09;
+const FRAGMENT_EXIT_DURATION = 780;
+const DEFAULT_WORLD_HINT = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
 
-function fadeMediaVolume(media, targetVolume, duration, onComplete) {
-  if (!media) return;
-  const startVolume = Number.isFinite(media.volume) ? media.volume : 0;
-  const startedAt = performance.now();
-  const step = now => {
-    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
-    media.volume = startVolume + (targetVolume - startVolume) * progress;
-    if (progress < 1) {
-      posterTrackFadeFrame = requestAnimationFrame(step);
-    } else {
-      posterTrackFadeFrame = undefined;
-      onComplete?.();
+const fragmentExperiences = {
+  lamp: {},
+  grass: {
+    enter: () => showGrassMessage(),
+    cleanup: () => hideGrassMessage(true)
+  },
+  wilds: {
+    enter: session => {
+      showWildsEntry();
+      startWildsSequence(session.audio);
+    },
+    cleanup: () => {
+      stopWildsSequence();
+      hideWildsEntry();
+    }
+  },
+  shelter: {
+    enter: () => startShelterScene(),
+    cleanup: () => stopShelterScene()
+  },
+  dawn: {
+    enter: () => startDawnScene(),
+    cleanup: () => stopDawnScene()
+  },
+  goodnews: {
+    enter: () => startGoodnewsScene(),
+    cleanup: () => stopGoodnewsScene()
+  }
+};
+
+function getFragmentConfig(track) {
+  const lifecycle = track.fragment || {};
+  const fallbackDuration = Math.max(1000, (track.placeholderTone?.duration || 8) * 1000);
+  return {
+    experience: lifecycle.experience || "default",
+    audioDurationMs: lifecycle.audioDurationMs || fallbackDuration,
+    visualDurationMs: lifecycle.visualDurationMs || lifecycle.audioDurationMs || fallbackDuration,
+    postAudioHoldMs: lifecycle.postAudioHoldMs || 0,
+    dismissOnBackground: lifecycle.dismissOnBackground !== false,
+    autoDismiss: lifecycle.autoDismiss !== false,
+    exitDurationMs: lifecycle.exitDurationMs || FRAGMENT_EXIT_DURATION,
+    ...(fragmentExperiences[lifecycle.experience] || {})
+  };
+}
+
+function createFragmentScope() {
+  const timers = new Set();
+  const intervals = new Set();
+  const frames = new Set();
+  const animations = new Set();
+  const listeners = new Set();
+  let acceptingWork = true;
+
+  return {
+    timeout(callback, delay) {
+      if (!acceptingWork) return undefined;
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        if (acceptingWork) callback();
+      }, delay);
+      timers.add(timer);
+      return timer;
+    },
+    interval(callback, delay) {
+      if (!acceptingWork) return undefined;
+      const interval = window.setInterval(() => {
+        if (acceptingWork) callback();
+      }, delay);
+      intervals.add(interval);
+      return interval;
+    },
+    frame(callback) {
+      if (!acceptingWork) return undefined;
+      const frame = requestAnimationFrame(timestamp => {
+        frames.delete(frame);
+        if (acceptingWork) callback(timestamp);
+      });
+      frames.add(frame);
+      return frame;
+    },
+    animation(animation) {
+      if (!animation) return animation;
+      animations.add(animation);
+      animation.finished.finally(() => animations.delete(animation)).catch(() => {});
+      return animation;
+    },
+    listen(target, type, handler, options) {
+      if (!acceptingWork || !target) return () => {};
+      target.addEventListener(type, handler, options);
+      const remove = () => target.removeEventListener(type, handler, options);
+      listeners.add(remove);
+      return () => {
+        remove();
+        listeners.delete(remove);
+      };
+    },
+    cancelScheduled() {
+      acceptingWork = false;
+      timers.forEach(timer => clearTimeout(timer));
+      intervals.forEach(interval => clearInterval(interval));
+      frames.forEach(frame => cancelAnimationFrame(frame));
+      listeners.forEach(remove => remove());
+      timers.clear();
+      intervals.clear();
+      frames.clear();
+      listeners.clear();
+    },
+    dispose() {
+      this.cancelScheduled();
+      animations.forEach(animation => {
+        try { animation.cancel(); } catch (_) { /* animation already ended */ }
+      });
+      animations.clear();
     }
   };
-  if (posterTrackFadeFrame) cancelAnimationFrame(posterTrackFadeFrame);
-  posterTrackFadeFrame = requestAnimationFrame(step);
+}
+
+function fragmentDelay(callback, delay) {
+  if (!activeFragment || activeFragment.exiting) return undefined;
+  return activeFragment.scope.timeout(callback, delay);
+}
+
+function trackFragmentAnimation(animation) {
+  return activeFragment?.scope.animation(animation) || animation;
+}
+
+function stopActiveTrackAudioImmediately(session = activeFragment) {
+  if (session?.audioFadeFrame) cancelAnimationFrame(session.audioFadeFrame);
+  const media = session?.audio || activeAudio;
+  if (media) {
+    media.pause();
+    try { media.currentTime = 0; } catch (_) { /* metadata may not be ready */ }
+  }
+  if (!session || activeAudio === media) activeAudio = null;
+  activeSources.forEach(source => {
+    try { source.stop(); } catch (_) { /* source already ended */ }
+  });
+  activeSources = [];
+  if (activeTrackGain) {
+    try { activeTrackGain.disconnect(); } catch (_) { /* already disconnected */ }
+    activeTrackGain = undefined;
+  }
+}
+
+function fadeActiveTrackAudio(session, duration) {
+  const media = session.audio;
+  if (activeTrackGain && audioContext) {
+    const now = audioContext.currentTime;
+    activeTrackGain.gain.cancelScheduledValues(now);
+    activeTrackGain.gain.setValueAtTime(Math.max(.0001, activeTrackGain.gain.value), now);
+    activeTrackGain.gain.exponentialRampToValueAtTime(.0001, now + Math.max(.02, duration / 1000));
+  }
+  if (!media || media.paused || duration <= 0) return;
+  const startedAt = performance.now();
+  const startVolume = media.volume;
+  const step = now => {
+    if (!session.exiting || activeFragment !== session) return;
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
+    media.volume = startVolume * (1 - progress);
+    if (progress < 1) session.audioFadeFrame = requestAnimationFrame(step);
+  };
+  session.audioFadeFrame = requestAnimationFrame(step);
+}
+
+function restoreFragmentExploration(session) {
+  session.node?.classList.remove("active");
+  guidingLamp.classList.remove("active");
+  world.classList.remove("fragment-active");
+  fragmentCaption.classList.remove("visible");
+  worldHint.textContent = DEFAULT_WORLD_HINT;
+  delete world.dataset.mood;
+  ["--mood", "--mood-rgb", "--mood-secondary"].forEach(property => root.style.removeProperty(property));
+  stage.classList.remove("fragment-exiting");
+  delete stage.dataset.fragmentExitReason;
+}
+
+function exitActiveFragment(reason = "background", options = {}) {
+  const session = activeFragment;
+  if (!session) return Promise.resolve();
+  if (session.exitPromise) return session.exitPromise;
+
+  const immediate = Boolean(options.immediate) || reducedMotion;
+  const exitDuration = immediate ? 0 : (session.config.exitDurationMs || FRAGMENT_EXIT_DURATION);
+  session.exiting = true;
+  session.scope.cancelScheduled();
+  session.progressAnimation?.cancel();
+  stage.classList.add("fragment-exiting");
+  stage.dataset.fragmentExitReason = reason;
+  fadeActiveTrackAudio(session, exitDuration * .82);
+
+  session.exitPromise = new Promise(resolve => {
+    const finish = () => {
+      try { session.config.cleanup?.(session, reason); } catch (_) { /* visual cleanup is best-effort */ }
+      session.scope.dispose();
+      stopActiveTrackAudioImmediately(session);
+      restoreFragmentExploration(session);
+      if (activeFragment === session) {
+        activeFragment = null;
+        activeTrackId = null;
+      }
+      resolve();
+    };
+    if (exitDuration === 0) finish();
+    else session.exitTimer = window.setTimeout(finish, exitDuration);
+  });
+  return session.exitPromise;
+}
+
+function scheduleFragmentCompletion(session) {
+  const { config, audio, scope } = session;
+  if (!config.autoDismiss) return;
+  if (audio) {
+    scope.listen(audio, "ended", () => {
+      if (activeFragment !== session || session.exiting) return;
+      if (config.postAudioHoldMs > 0) {
+        scope.timeout(() => exitActiveFragment("audio-ended"), config.postAudioHoldMs);
+      } else {
+        exitActiveFragment("audio-ended");
+      }
+    }, { once: true });
+  }
+  scope.timeout(() => {
+    if (activeFragment === session && !session.exiting) exitActiveFragment("auto-timeout");
+  }, config.audioDurationMs + config.postAudioHoldMs + 900);
 }
 
 function stopPosterAmbience(immediate = false) {
@@ -509,15 +721,6 @@ function startPosterAmbience() {
   posterAmbientSources = [low, high, noise];
 }
 
-function transitionWildsIntoPoster() {
-  if (activeTrackId !== "fragment-03") return;
-  if (activeAudio) {
-    fadeMediaVolume(activeAudio, muted ? 0 : POSTER_WILDS_VOLUME, reducedMotion ? 30 : 1900);
-  }
-  clearTimeout(posterAmbientTimer);
-  posterAmbientTimer = setTimeout(startPosterAmbience, reducedMotion ? 0 : 650);
-}
-
 function stopTimelineAudio(immediate = false) {
   if (!timelineAudio) return;
   const media = timelineAudio;
@@ -557,15 +760,6 @@ function stopTimelineVideo() {
 function playTimelineAudio(item) {
   if (!item.audioSrc) return;
   stopPosterAmbience();
-  if (activeAudio) {
-    const wildsAudio = activeAudio;
-    fadeMediaVolume(wildsAudio, 0, reducedMotion ? 20 : 620, () => {
-      if (activeAudio === wildsAudio) {
-        wildsAudio.pause();
-        activeAudio = null;
-      }
-    });
-  }
   stopTimelineAudio(true);
   const media = new Audio(item.audioSrc);
   const targetVolume = muted ? 0 : (item.audioVolume ?? .32);
@@ -592,30 +786,24 @@ function playTimelineAudio(item) {
 }
 
 function stopAudio() {
-  stopWildsSequence();
   stopPosterAmbience(true);
   stopTimelineAudio(true);
   stopTimelineVideo();
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio.currentTime = 0;
-    activeAudio = null;
-  }
-  activeSources.forEach(source => {
-    try { source.stop(); } catch (_) { /* source already ended */ }
-  });
-  activeSources = [];
+  stopActiveTrackAudioImmediately();
 }
 
 function playPlaceholder(track) {
   if (!audioContext || !masterGain) return;
   const { baseFrequency, intervals, duration } = track.placeholderTone;
   const start = audioContext.currentTime;
+  activeTrackGain = audioContext.createGain();
+  activeTrackGain.gain.value = 1;
+  activeTrackGain.connect(masterGain);
   const filter = audioContext.createBiquadFilter();
   filter.type = "lowpass";
   filter.frequency.setValueAtTime(960, start);
   filter.Q.value = .7;
-  filter.connect(masterGain);
+  filter.connect(activeTrackGain);
 
   intervals.forEach((ratio, index) => {
     const oscillator = audioContext.createOscillator();
@@ -650,33 +838,29 @@ function playPlaceholder(track) {
 }
 
 function playTrackAudio(track) {
-  stopAudio();
+  stopActiveTrackAudioImmediately();
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
-  const isGrassTrack = track.id === "fragment-02";
   const source = track.snippetSrc || track.fullAudioSrc;
-  const scheduleGrassFallback = () => {
-    if (!isGrassTrack) return;
-    clearTimeout(grassFadeTimer);
-    grassFadeTimer = setTimeout(() => {
-      if (activeTrackId === "fragment-02") hideGrassMessage();
-    }, track.placeholderTone.duration * 1000);
-  };
   if (source) {
-    activeAudio = new Audio(source);
-    activeAudio.volume = muted ? 0 : .42;
-    if (isGrassTrack) {
-      activeAudio.addEventListener("ended", () => {
-        if (activeTrackId === "fragment-02") hideGrassMessage();
-      }, { once: true });
-    }
-    activeAudio.play().catch(() => {
-      scheduleGrassFallback();
+    const media = new Audio(source);
+    activeAudio = media;
+    media.volume = muted ? 0 : .42;
+    media.play().catch(() => {
+      const session = activeFragment;
+      if (session?.audio !== media || activeAudio !== media || session.exiting) return;
       playPlaceholder(track);
+      if (session.config.autoDismiss) {
+        session.scope.timeout(
+          () => exitActiveFragment("audio-ended"),
+          (track.placeholderTone?.duration || 8) * 1000 + session.config.postAudioHoldMs
+        );
+      }
     });
+    return media;
   } else {
-    scheduleGrassFallback();
     playPlaceholder(track);
+    return null;
   }
 }
 
@@ -692,7 +876,24 @@ function createRipple(node, track) {
   ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
 }
 
-function activateTrack(track, node) {
+async function activateTrack(track, node) {
+  const requestId = ++fragmentActivationRequest;
+  if (activeFragment) await exitActiveFragment("track-switch");
+  if (requestId !== fragmentActivationRequest || !stage.classList.contains("entered")) return;
+
+  const config = getFragmentConfig(track);
+  const session = {
+    track,
+    node,
+    config,
+    scope: createFragmentScope(),
+    audio: null,
+    exiting: false,
+    exitPromise: null,
+    progressAnimation: null,
+    audioFadeFrame: null
+  };
+  activeFragment = session;
   activeTrackId = track.id;
   document.querySelectorAll(".track-node").forEach(item => item.classList.remove("active"));
   guidingLamp.classList.remove("active");
@@ -712,48 +913,19 @@ function activateTrack(track, node) {
     ? "一小段声音正在穿过视野。"
     : "占位声景 · 可在曲目配置中替换为真实片段";
   createRipple(node, track);
-  playTrackAudio(track);
-  if (track.id === "fragment-03") {
-    showWildsEntry();
-    startWildsSequence(activeAudio);
-  } else {
-    hideWildsEntry();
-  }
-  if (track.id === "fragment-02") {
-    showGrassMessage();
-  } else {
-    hideGrassMessage();
-  }
-  if (track.id === "fragment-05") {
-    startDawnScene(activeAudio);
-  } else {
-    stopDawnScene();
-  }
-  if (track.id === "fragment-04") {
-    startShelterScene();
-  } else {
-    stopShelterScene();
-  }
-  if (track.id === "fragment-06") {
-    startGoodnewsScene(activeAudio);
-  } else {
-    stopGoodnewsScene();
+  session.audio = playTrackAudio(track);
+  try {
+    config.enter?.(session);
+  } catch (_) {
+    exitActiveFragment("auto-timeout", { immediate: true });
+    return;
   }
 
-  const visualDuration = track.id === "fragment-05" ? 16000 : (track.id === "fragment-04" ? 15000 : (track.id === "fragment-06" ? 13600 : track.placeholderTone.duration * 1000));
-  if (progressAnimation) progressAnimation.cancel();
-  progressAnimation = fragmentProgress.animate(
+  session.progressAnimation = trackFragmentAnimation(fragmentProgress.animate(
     [{ width: "0%", opacity: 1 }, { width: "100%", opacity: 1 }, { width: "100%", opacity: 0 }],
-    { duration: visualDuration, easing: "linear", fill: "forwards" }
-  );
-  clearTimeout(fragmentTimer);
-  fragmentTimer = setTimeout(() => {
-    node.classList.remove("active");
-    guidingLamp.classList.remove("active");
-    world.classList.remove("fragment-active");
-    fragmentCaption.classList.remove("visible");
-    worldHint.textContent = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
-  }, visualDuration + 250);
+    { duration: config.visualDurationMs, easing: "linear", fill: "forwards" }
+  ));
+  scheduleFragmentCompletion(session);
 }
 
 function dawnEase(value) {
@@ -874,7 +1046,7 @@ function drawDawnScene(timestamp, runId, startedAt) {
   if (progress < 1) dawnFrame = requestAnimationFrame(next => drawDawnScene(next, runId, startedAt));
 }
 
-function startDawnScene(audio) {
+function startDawnScene() {
   stopDawnScene();
   const runId = ++dawnRunId;
   createDawnParticles();
@@ -883,9 +1055,6 @@ function startDawnScene(audio) {
   dawnScene.classList.add("visible");
   const startedAt = performance.now();
   dawnFrame = requestAnimationFrame(next => drawDawnScene(next, runId, startedAt));
-  if (audio) audio.addEventListener("ended", () => {
-    if (runId === dawnRunId) stopDawnScene();
-  }, { once: true });
 }
 
 function stopDawnScene() {
@@ -995,7 +1164,7 @@ function startShelterScene() {
   stage.classList.add("shelter-moment");
   shelterScene.setAttribute("aria-hidden","false");
   shelterScene.classList.add("visible");
-  shelterTimers.push(setTimeout(() => shelterScene.classList.add("roof-formed"), 9000));
+  shelterTimers.push(fragmentDelay(() => shelterScene.classList.add("roof-formed"), 9000));
   shelterFrame = requestAnimationFrame(next => drawShelterScene(next,runId));
 }
 
@@ -1018,57 +1187,70 @@ function goodnewsEase(value) {
   return n * n * (3 - 2 * n);
 }
 
+function goodnewsCurvePoint(progress, line = 0) {
+  const bend = Math.pow(Math.max(0, (progress - .36) / .64), 1.58);
+  const x = -.5 + progress;
+  const y = .64 - bend * 4.55 + Math.sin(progress * Math.PI * 1.18) * .1 + line;
+  const slope = -7.1 * Math.pow(Math.max(.001, (progress - .36) / .64), .58) / .64
+    + Math.cos(progress * Math.PI * 1.18) * .118 * Math.PI;
+  return { x, y, angle: Math.atan2(slope, 1) };
+}
+
 function createGoodnewsTargets() {
   const mobile = window.innerWidth <= 680;
   const targets = [];
-  const linePoints = mobile ? 29 : 43;
-  for (let line = 0; line < 5; line += 1) {
+  const linePoints = mobile ? 36 : 54;
+  for (let line = -2; line <= 2; line += 1) {
     for (let index = 0; index < linePoints; index += 1) {
+      const point = goodnewsCurvePoint(index / (linePoints - 1), line);
       targets.push({
-        nx: -.5 + index / (linePoints - 1),
-        unitY: line - 2,
-        shape: index % 3 === 0 ? "dot" : "dash",
-        angle: 0,
-        note: false
+        nx: point.x,
+        unitY: point.y,
+        shape: index % 4 === 0 ? "dot" : "dash",
+        angle: point.angle,
+        note: false,
+        weight: .7
       });
     }
   }
 
   const notes = mobile
-    ? [[-.3, 1.05, true], [-.08, -.85, false], [.18, 1.9, true], [.36, -.05, false]]
-    : [[-.32, 1.05, true], [-.11, -.85, false], [.12, 1.9, true], [.31, -.05, true]];
-  notes.forEach(([nx, unitY, flagged], noteIndex) => {
-    const flip = noteIndex % 3 === 2;
-    for (let index = 0; index < 11; index += 1) {
-      const angle = Math.PI * 2 * index / 11;
+    ? [[.18, .9, false], [.43, -.55, true], [.64, .75, false], [.8, -.5, true]]
+    : [[.13, 1, false], [.34, -.75, true], [.55, 1.2, false], [.72, -.1, true], [.86, .72, false]];
+  notes.forEach(([progress, offset, flagged], noteIndex) => {
+    const base = goodnewsCurvePoint(progress, offset);
+    const stemUp = noteIndex % 3 !== 2;
+    const headRadius = mobile ? .014 : .012;
+    for (let index = 0; index < 13; index += 1) {
+      const angle = Math.PI * 2 * index / 13;
       targets.push({
-        nx: nx + Math.cos(angle) * .017,
-        unitY: unitY + Math.sin(angle) * .28,
+        nx: base.x + Math.cos(angle) * headRadius,
+        unitY: base.y + Math.sin(angle) * .24,
         shape: "dot",
         angle: 0,
-        note: true
+        note: true,
+        weight: 1.2
       });
     }
-    [[-.009,-.09],[0,0],[.009,.09],[-.008,.12],[.008,-.12]].forEach(([dx,dy]) => {
-      targets.push({ nx: nx + dx, unitY: unitY + dy, shape: "dot", angle: 0, note: true });
-    });
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 9; index += 1) {
       targets.push({
-        nx: nx + (flip ? -.016 : .016),
-        unitY: unitY - index * .28,
+        nx: base.x + (stemUp ? .013 : -.013),
+        unitY: base.y - (stemUp ? 1 : -1) * index * .27,
         shape: "dash",
         angle: Math.PI / 2,
-        note: true
+        note: true,
+        weight: 1.05
       });
     }
     if (flagged) {
-      for (let index = 0; index < 7; index += 1) {
+      for (let index = 0; index < 8; index += 1) {
         targets.push({
-          nx: nx + (flip ? -.016 - index * .009 : .016 + index * .009),
-          unitY: unitY - 1.94 + Math.sin(index / 6 * Math.PI) * .3,
+          nx: base.x + (stemUp ? .015 : -.015) + (stemUp ? 1 : -1) * index * .01,
+          unitY: base.y - (stemUp ? 1 : -1) * 2.08 + Math.sin(index / 7 * Math.PI) * .27,
           shape: index % 2 ? "dot" : "dash",
-          angle: flip ? -.45 : .45,
-          note: true
+          angle: stemUp ? -.48 : .48,
+          note: true,
+          weight: 1
         });
       }
     }
@@ -1081,12 +1263,12 @@ function makeGoodnewsParticles() {
     ...target,
     startX: Math.random(),
     startY: Math.random(),
-    size: target.note ? .9 + Math.random() * 1.1 : .65 + Math.random() * .85,
-    length: target.note ? 4 + Math.random() * 5 : 5 + Math.random() * 7,
+    size: (target.note ? .95 : .68) + Math.random() * (target.note ? 1.1 : .72),
+    length: (target.note ? 4.5 : 5.5) + Math.random() * 5.5,
     phase: Math.random() * Math.PI * 2,
-    speed: .00065 + Math.random() * .00065,
-    opacity: .42 + Math.random() * .42,
-    delay: (index % 17) * 18 + Math.random() * 260
+    speed: .00055 + Math.random() * .00065,
+    opacity: .5 + Math.random() * .42,
+    delay: (index % 19) * 17 + Math.random() * 260
   }));
 }
 
@@ -1105,46 +1287,42 @@ function drawGoodnewsScene(timestamp, runId) {
   ctx.clearRect(0, 0, rect.width, rect.height);
 
   const elapsed = timestamp - goodnewsStartedAt;
-  const staffWidth = Math.min(rect.width * (rect.width <= 680 ? .84 : .72), 880);
-  const gap = Math.min(rect.height * (rect.width <= 680 ? .045 : .055), rect.width <= 680 ? 25 : 38);
-  const centerX = rect.width * .5;
-  const centerY = rect.height * (rect.width <= 680 ? .43 : .44);
-  const settled = goodnewsEase((elapsed - 900) / 5600);
-  const floatAmount = goodnewsEase((elapsed - 6100) / 1300);
-  const driftX = Math.sin(elapsed * .00048) * 5 * floatAmount;
-  const driftY = Math.cos(elapsed * .00058) * 8 * floatAmount;
-  const rotation = Math.sin(elapsed * .00036) * .012 * floatAmount;
+  const mobile = rect.width <= 680;
+  const staffWidth = Math.min(rect.width * (mobile ? .92 : .79), 980);
+  const gap = Math.min(rect.height * (mobile ? .038 : .048), mobile ? 22 : 34);
+  const centerX = rect.width * (mobile ? .48 : .49);
+  const centerY = rect.height * (mobile ? .55 : .59);
+  const settled = goodnewsEase((elapsed - 650) / 5000);
+  const floatAmount = goodnewsEase((elapsed - 5000) / 1500);
+  const driftX = Math.sin(elapsed * .00043) * 5.5 * floatAmount;
+  const driftY = Math.cos(elapsed * .00052) * 7 * floatAmount;
 
   goodnewsParticles.forEach(particle => {
-    const individual = goodnewsEase((elapsed - 900 - particle.delay) / 5200);
-    const targetX = centerX + particle.nx * staffWidth;
-    const targetY = centerY + particle.unitY * gap;
-    const localX = targetX - centerX;
-    const localY = targetY - centerY;
-    const rotatedX = centerX + localX * Math.cos(rotation) - localY * Math.sin(rotation) + driftX;
-    const rotatedY = centerY + localX * Math.sin(rotation) + localY * Math.cos(rotation) + driftY;
-    const arcX = Math.sin(individual * Math.PI + particle.phase) * (1 - individual) * 34;
-    const arcY = Math.cos(individual * Math.PI * 1.5 + particle.phase) * (1 - individual) * 22;
-    const wobbleX = Math.sin(timestamp * particle.speed + particle.phase) * (1.5 + (1 - settled) * 5);
-    const wobbleY = Math.cos(timestamp * particle.speed * .83 + particle.phase) * (1.2 + (1 - settled) * 4);
-    const x = particle.startX * rect.width * (1 - individual) + rotatedX * individual + arcX + wobbleX;
-    const y = particle.startY * rect.height * (1 - individual) + rotatedY * individual + arcY + wobbleY;
-    const alpha = particle.opacity * (.22 + individual * .78);
+    const individual = reducedMotion ? 1 : goodnewsEase((elapsed - 520 - particle.delay) / 4700);
+    const targetX = centerX + particle.nx * staffWidth + driftX;
+    const targetY = centerY + particle.unitY * gap + driftY;
+    const arcX = Math.sin(individual * Math.PI + particle.phase) * (1 - individual) * 38;
+    const arcY = Math.cos(individual * Math.PI * 1.45 + particle.phase) * (1 - individual) * 28;
+    const wobbleX = Math.sin(timestamp * particle.speed + particle.phase) * (1.4 + (1 - settled) * 6);
+    const wobbleY = Math.cos(timestamp * particle.speed * .81 + particle.phase) * (1.2 + (1 - settled) * 5);
+    const x = particle.startX * rect.width * (1 - individual) + targetX * individual + arcX + wobbleX;
+    const y = particle.startY * rect.height * (1 - individual) + targetY * individual + arcY + wobbleY;
+    const alpha = particle.opacity * (.18 + individual * .82);
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "rgba(248,252,255,.96)";
-    ctx.strokeStyle = "rgba(242,249,255,.94)";
-    ctx.shadowColor = particle.note ? "rgba(199,225,255,.72)" : "rgba(178,214,255,.5)";
-    ctx.shadowBlur = particle.note ? 6 : 3.5;
+    ctx.fillStyle = "rgba(255,255,255,.98)";
+    ctx.strokeStyle = "rgba(255,255,255,.95)";
+    ctx.shadowColor = particle.note ? "rgba(220,235,255,.72)" : "rgba(205,228,255,.44)";
+    ctx.shadowBlur = particle.note ? 6.5 : 3.2;
     ctx.lineCap = "round";
     if (particle.shape === "dot") {
       ctx.beginPath();
-      ctx.arc(x, y, particle.size * (particle.note ? 1.15 : 1), 0, Math.PI * 2);
+      ctx.arc(x, y, particle.size * (particle.note ? 1.18 : 1), 0, Math.PI * 2);
       ctx.fill();
     } else {
-      const angle = particle.angle + rotation + (1 - individual) * Math.sin(particle.phase) * .7;
-      ctx.lineWidth = Math.max(.9, particle.size * .75);
+      const angle = particle.angle + (1 - individual) * Math.sin(particle.phase) * .65;
+      ctx.lineWidth = Math.max(.9, particle.size * .78 * particle.weight);
       ctx.beginPath();
       ctx.moveTo(x - Math.cos(angle) * particle.length * .5, y - Math.sin(angle) * particle.length * .5);
       ctx.lineTo(x + Math.cos(angle) * particle.length * .5, y + Math.sin(angle) * particle.length * .5);
@@ -1155,7 +1333,7 @@ function drawGoodnewsScene(timestamp, runId) {
   goodnewsFrame = requestAnimationFrame(next => drawGoodnewsScene(next, runId));
 }
 
-function startGoodnewsScene(audio) {
+function startGoodnewsScene() {
   stopGoodnewsScene();
   const runId = ++goodnewsRunId;
   makeGoodnewsParticles();
@@ -1163,11 +1341,8 @@ function startGoodnewsScene(audio) {
   stage.classList.add("goodnews-moment");
   goodnewsScene.setAttribute("aria-hidden", "false");
   goodnewsScene.classList.add("visible");
-  goodnewsFormTimer = setTimeout(() => goodnewsScene.classList.add("formed"), 7000);
+  goodnewsFormTimer = fragmentDelay(() => goodnewsScene.classList.add("formed"), 7000);
   goodnewsFrame = requestAnimationFrame(next => drawGoodnewsScene(next, runId));
-  if (audio) audio.addEventListener("ended", () => {
-    if (runId === goodnewsRunId) stopGoodnewsScene();
-  }, { once: true });
 }
 
 function stopGoodnewsScene() {
@@ -1205,7 +1380,7 @@ function showGrassMessage() {
   grassMessage.classList.add("visible");
   const revealDelays = reducedMotion ? [0, 0, 0, 0, 0] : [80, 320, 660, 940, 1260];
   lines.forEach((line, index) => {
-    const timer = window.setTimeout(() => {
+    const timer = fragmentDelay(() => {
       if (
         activeTrackId === "fragment-02"
         && grassMessage.classList.contains("visible")
@@ -1216,12 +1391,16 @@ function showGrassMessage() {
   });
 }
 
-function hideGrassMessage() {
+function hideGrassMessage(immediate = false) {
   clearTimeout(grassFadeTimer);
   cancelGrassReveal();
   stage.classList.remove("grass-moment");
   if (!grassMessage.classList.contains("visible") && !grassMessage.classList.contains("exiting")) {
     grassMessage.classList.remove("visible");
+    return;
+  }
+  if (immediate || reducedMotion) {
+    grassMessage.classList.remove("visible", "exiting");
     return;
   }
   grassMessage.classList.add("exiting");
@@ -1324,15 +1503,6 @@ function renderTimelineMemoryContent(item) {
       event.stopPropagation();
       playButton.disabled = true;
       stopPosterAmbience();
-      if (activeAudio) {
-        const previousAudio = activeAudio;
-        fadeMediaVolume(previousAudio, 0, reducedMotion ? 20 : 420, () => {
-          if (activeAudio === previousAudio) {
-            previousAudio.pause();
-            activeAudio = null;
-          }
-        });
-      }
       video.muted = muted;
       video.controls = true;
       video.play().then(() => {
@@ -1445,11 +1615,12 @@ function hideWildsEntry() {
   closePosterScene();
 }
 
-function openPosterScene() {
-  if (!wildsChibiEntry.classList.contains("visible")) return;
+function openPosterScene(force = false) {
+  if (!force && !wildsChibiEntry.classList.contains("visible")) return;
   posterReveal.setAttribute("aria-hidden", "false");
   posterReveal.classList.add("opening");
-  transitionWildsIntoPoster();
+  clearTimeout(posterAmbientTimer);
+  posterAmbientTimer = setTimeout(startPosterAmbience, reducedMotion ? 0 : 650);
   requestAnimationFrame(() => posterReveal.classList.add("open"));
 }
 
@@ -1504,7 +1675,7 @@ function stopWildsSequence() {
     try { animation.cancel(); } catch (_) { /* already finished */ }
   });
   wildsAnimations = [];
-  wildsFormation.classList.remove("active", "formed");
+  wildsFormation.classList.remove("active", "rising", "formed");
   wildsLines.replaceChildren();
 }
 
@@ -1538,7 +1709,7 @@ function startWildsSequence(audio) {
     const travelTime = assemblyDuration * (.5 + Math.random() * .12);
     const bendX = (start.x + target.x) * .5 + (Math.random() - .5) * width * .18;
     const bendY = (start.y + target.y) * .5 + (Math.random() - .5) * height * .16;
-    const animation = line.animate([
+    const animation = trackFragmentAnimation(line.animate([
       { transform: `translate3d(${start.x}px,${start.y}px,0) rotate(${startRotation}deg) scaleX(.55)`, opacity: 0 },
       { offset: .12, opacity: visibleOpacity },
       { offset: .58, transform: `translate3d(${bendX}px,${bendY}px,0) rotate(${(startRotation + targetRotation) * .5}deg) scaleX(1)`, opacity: visibleOpacity * .82 },
@@ -1548,36 +1719,32 @@ function startWildsSequence(audio) {
       delay,
       easing: "cubic-bezier(.18,.68,.2,1)",
       fill: "forwards"
-    });
+    }));
     wildsAnimations.push(animation);
   });
 
   const revealAt = reducedMotion ? 180 : Math.min(durationMs - 950, 4500);
   const riseAt = reducedMotion ? 80 : Math.min(revealAt - 900, assemblyDuration + 480);
-  wildsTimers.push(setTimeout(() => {
+  wildsTimers.push(fragmentDelay(() => {
     if (runId === wildsRunId) wildsFormation.classList.add("rising");
   }, riseAt));
-  wildsTimers.push(setTimeout(() => {
+  wildsTimers.push(fragmentDelay(() => {
     if (runId !== wildsRunId) return;
     wildsFormation.classList.add("formed");
     wildsLines.querySelectorAll(".wilds-line").forEach((line, index) => {
-      const fade = line.animate(
+      const fade = trackFragmentAnimation(line.animate(
         [{ opacity: getComputedStyle(line).opacity }, { opacity: 0 }],
         { duration: 720 + index % 5 * 70, easing: "ease-out", fill: "forwards" }
-      );
+      ));
       wildsAnimations.push(fade);
     });
   }, revealAt));
-  wildsTimers.push(setTimeout(() => {
+  wildsTimers.push(fragmentDelay(() => {
     if (runId === wildsRunId) stopWildsSequence();
   }, revealAt + 5000));
 
-  if (audio) {
-    audio.addEventListener("ended", () => {
-      if (runId === wildsRunId) stopWildsSequence();
-    }, { once: true });
-  } else {
-    wildsTimers.push(setTimeout(() => {
+  if (!audio) {
+    wildsTimers.push(fragmentDelay(() => {
       if (runId === wildsRunId) stopWildsSequence();
     }, durationMs));
   }
@@ -1692,16 +1859,21 @@ enter.addEventListener("click", () => {
   }, 1250);
 });
 
-guidingLamp.addEventListener("click", () => {
+guidingLamp.addEventListener("click", event => {
+  event.stopPropagation();
   const track = tracks.find(item => item.id === "deng-huo");
   const node = document.querySelector('[data-track-id="deng-huo"]');
   emitLanternSparks();
   if (track && node) activateTrack(track, node);
 });
 
-wildsChibiEntry.addEventListener("click", event => {
+wildsChibiEntry.addEventListener("click", async event => {
   event.stopPropagation();
-  openPosterScene();
+  if (!wildsChibiEntry.classList.contains("visible")) return;
+  const navigationRequest = ++fragmentActivationRequest;
+  await exitActiveFragment("scene-change");
+  if (navigationRequest !== fragmentActivationRequest) return;
+  openPosterScene(true);
 });
 
 posterClose.addEventListener("click", event => {
@@ -1741,7 +1913,7 @@ dreamTodo.addEventListener("click", event => {
     shelterScene.classList.remove("swaying");
     void shelterScene.offsetWidth;
     shelterScene.classList.add("swaying");
-    shelterTimers.push(setTimeout(() => shelterScene.classList.remove("swaying"), 1600));
+    fragmentDelay(() => shelterScene.classList.remove("swaying"), 1600);
   }
   const complete = [...dreamTodo.querySelectorAll("button[data-dream]")].every(item => item.classList.contains("checked"));
   dreamTodo.classList.toggle("complete", complete);
@@ -1750,7 +1922,7 @@ dreamTodo.addEventListener("click", event => {
 const protectShelter = () => {
   if (!shelterScene.classList.contains("visible")) return;
   shelterScene.classList.add("protecting");
-  shelterTimers.push(setTimeout(() => shelterScene.classList.remove("protecting"), 1300));
+  fragmentDelay(() => shelterScene.classList.remove("protecting"), 1300);
 };
 shelterPerson.addEventListener("pointerenter", protectShelter);
 shelterPerson.addEventListener("click", event => { event.stopPropagation(); protectShelter(); });
@@ -1760,12 +1932,15 @@ meltingClock.addEventListener("click", event => {
   shelterScene.classList.remove("fast-forward");
   void shelterScene.offsetWidth;
   shelterScene.classList.add("fast-forward");
-  shelterTimers.push(setTimeout(() => shelterScene.classList.remove("fast-forward"), 1700));
+  fragmentDelay(() => shelterScene.classList.remove("fast-forward"), 1700);
 });
 
 window.addEventListener("keydown", event => {
   if (event.key === "Escape" && timelineMemory.getAttribute("aria-hidden") === "false") {
     closeTimelineMemory();
+  } else if (event.key === "Escape" && activeFragment) {
+    fragmentActivationRequest += 1;
+    exitActiveFragment("scene-change");
   }
 });
 
@@ -1773,9 +1948,18 @@ world.addEventListener("click", event => {
   if (!event.target.closest(".spark")) {
     document.querySelectorAll(".spark.open").forEach(item => item.classList.remove("open"));
   }
+  if (!activeFragment || activeFragment.exiting) return;
+  if (event.target.closest("[data-fragment-interactive], .track-node, .spark, button, a, input, video, .poster-reveal")) return;
+  if (activeFragment.config.dismissOnBackground) exitActiveFragment("background");
 });
 
-reset.addEventListener("click", () => {
+document.querySelectorAll("[data-fragment-interactive]").forEach(element => {
+  element.addEventListener("click", event => event.stopPropagation());
+});
+
+reset.addEventListener("click", async () => {
+  fragmentActivationRequest += 1;
+  await exitActiveFragment("reset");
   stage.classList.remove("entered");
   world.classList.remove("fragment-active");
   fragmentCaption.classList.remove("visible");
@@ -1785,10 +1969,6 @@ reset.addEventListener("click", () => {
   textSparksReleased = false;
   activeTrackId = null;
   hideWildsEntry();
-  hideGrassMessage();
-  stopDawnScene();
-  stopShelterScene();
-  stopGoodnewsScene();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();
@@ -1802,13 +1982,7 @@ sound.addEventListener("click", () => {
   muted = !muted;
   initializeAudio();
   if (masterGain && audioContext) masterGain.gain.setTargetAtTime(muted ? 0 : .12, audioContext.currentTime, .08);
-  if (activeAudio) {
-    activeAudio.volume = muted ? 0 : (
-      posterReveal.classList.contains("open") && activeTrackId === "fragment-03"
-        ? POSTER_WILDS_VOLUME
-        : TRACK_VOLUME
-    );
-  }
+  if (activeAudio) activeAudio.volume = muted ? 0 : TRACK_VOLUME;
   if (timelineAudio) timelineAudio.volume = muted ? 0 : .32;
   if (timelineVideo) timelineVideo.muted = muted;
   if (posterAmbientGain && audioContext) {

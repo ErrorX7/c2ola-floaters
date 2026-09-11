@@ -1330,6 +1330,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   visibility: hidden;
   opacity: 0;
   isolation: isolate;
+  pointer-events: none;
   background:
     radial-gradient(ellipse at 69% 59%, rgba(120,160,211,.11), transparent 30%),
     radial-gradient(ellipse at 18% 22%, rgba(93,132,190,.08), transparent 25%),
@@ -1345,6 +1346,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   box-shadow: inset 0 0 18vmax rgba(0,2,9,.72);
 }
 .shelter-scene.visible { visibility: visible; opacity: 1; transition: opacity 1s ease; }
+.melting-clock,.dream-todo,.shelter-person,.shelter-caption { pointer-events: auto; }
 .shelter-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .melting-clock {
   position: absolute;
@@ -1542,6 +1544,34 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .stage.goodnews-moment .floater-field .ambient-floater { opacity:.1!important; }
 .stage.goodnews-moment .fragment-caption,
 .stage.goodnews-moment .world-hint { opacity:0; }
+
+[data-fragment-interactive] { pointer-events: auto; }
+.fragment-caption[data-fragment-interactive] { pointer-events: none; }
+.fragment-caption.visible[data-fragment-interactive] { pointer-events: auto; }
+.stage.dawn-moment .fragment-caption,
+.stage.shelter-moment .fragment-caption,
+.stage.goodnews-moment .fragment-caption { pointer-events: none; }
+.goodnews-score-hit {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 44%;
+  width: min(76vw,940px);
+  height: min(34vh,310px);
+  transform: translate(-50%,-50%);
+}
+.stage.fragment-exiting .fragment-surface,
+.stage.fragment-exiting .fragment-caption {
+  opacity: 0 !important;
+  filter: blur(6px) !important;
+  transition: opacity 780ms ease, filter 780ms ease, visibility 780ms step-end !important;
+}
+.stage.fragment-exiting .guiding-lamp.active {
+  opacity: .55;
+  filter: blur(2px) drop-shadow(0 0 5px rgba(190,216,255,.16));
+  transition: opacity 780ms ease, filter 780ms ease;
+}
+.stage.fragment-exiting .fragment-ripple { opacity: 0 !important; transition: opacity 500ms ease; }
 
 .track-nodes, .floater-field { position: absolute; inset: 0; }
 .track-nodes { z-index: 14; pointer-events: none; }
@@ -1778,6 +1808,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .shelter-caption { bottom: max(.9rem,env(safe-area-inset-bottom)); font-size: clamp(.69rem,3.1vw,.86rem); }
   .goodnews-caption { top: 67%; width:max-content; max-width:88vw; font-size:clamp(1.05rem,5.6vw,1.45rem); letter-spacing:.14em; }
   .goodnews-caption::before,.goodnews-caption::after { width:min(10vw,40px); }
+  .goodnews-score-hit { width:90vw; height:31vh; top:43%; }
   .timeline-memory-caption {
     top: auto;
     bottom: max(.85rem, env(safe-area-inset-bottom));

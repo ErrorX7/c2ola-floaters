@@ -70,7 +70,7 @@
       <div class="depth-ring"></div>
       <div class="album-presence"><img src="cover.webp" alt="小酷《飞蚊症》专辑封面" /></div>
       <div class="guiding-path" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <button class="guiding-lamp" id="guidingLamp" type="button" aria-label="触碰发光的手绘漂流瓶，释放灯火并播放音乐碎片《灯火》">
+      <button class="guiding-lamp" id="guidingLamp" type="button" aria-label="触碰发光的手绘漂流瓶，释放灯火并播放音乐碎片《灯火》" data-fragment-interactive>
         <span class="lamp-aura" aria-hidden="true"></span>
         <svg class="bottle-sketch" viewBox="0 0 180 260" role="img" aria-labelledby="bottleTitle bottleDescription">
           <title id="bottleTitle">装着海浪与灯火的手绘漂流瓶</title>
@@ -110,14 +110,14 @@
         </svg>
         <span class="spark-origin" id="sparkOrigin" aria-hidden="true"></span>
       </button>
-      <div class="lamp-field" aria-hidden="true"></div>
+      <div class="lamp-field fragment-surface" aria-hidden="true"></div>
       <div class="spark-field" id="sparkField" aria-label="漂浮的小花火文字"></div>
       <div class="track-nodes" id="trackNodes"></div>
-      <div class="wilds-formation" id="wildsFormation" aria-hidden="true">
+      <div class="wilds-formation fragment-surface" id="wildsFormation" aria-hidden="true">
         <div class="wilds-lines" id="wildsLines"></div>
-        <div class="wilds-word" id="wildsWord"><span>THE</span><span>WILDS</span></div>
+        <div class="wilds-word" id="wildsWord" data-fragment-interactive><span>THE</span><span>WILDS</span></div>
       </div>
-      <button class="wilds-chibi-entry" id="wildsChibiEntry" type="button" aria-label="掀开隐藏的巡演海报">
+      <button class="wilds-chibi-entry fragment-surface" id="wildsChibiEntry" type="button" aria-label="掀开隐藏的巡演海报" data-fragment-interactive>
         <img src="wilds-chibi.webp?v=20260910c" alt="" />
         <span>掀开看看</span>
       </button>
@@ -160,8 +160,8 @@
           <p class="timeline-memory-caption" id="timelineMemoryCaption" aria-live="polite"></p>
         </section>
       </section>
-      <div class="grass-message" id="grassMessage" aria-live="polite" aria-label="青草地的陪伴文字">
-        <div class="grass-message-copy">
+      <div class="grass-message fragment-surface" id="grassMessage" aria-live="polite" aria-label="青草地的陪伴文字">
+        <div class="grass-message-copy" data-fragment-interactive>
           <span class="grass-line">不管是亲人爱人还是友情</span>
           <span class="grass-line">我都希望你能有人陪</span>
           <span class="grass-line grass-gap">但是当你感到没人陪的时候</span>
@@ -169,12 +169,12 @@
           <span class="grass-line grass-final">我会永远陪着你</span>
         </div>
       </div>
-      <section class="dawn-scene" id="dawnScene" aria-hidden="true" aria-label="凌晨的相遇与出发">
-        <img class="dawn-earth-image" src="dawn-earth-pixel.jpg?v=20260911a" alt="像素风格的蓝绿色地球" />
+      <section class="dawn-scene fragment-surface" id="dawnScene" aria-hidden="true" aria-label="凌晨的相遇与出发">
+        <img class="dawn-earth-image" src="dawn-earth-pixel.jpg?v=20260911a" alt="像素风格的蓝绿色地球" data-fragment-interactive />
         <canvas class="dawn-canvas" id="dawnCanvas"></canvas>
-        <p class="dawn-caption">世界太假我带你逃离</p>
+        <p class="dawn-caption" data-fragment-interactive>世界太假我带你逃离</p>
       </section>
-      <section class="shelter-scene" id="shelterScene" aria-hidden="true" aria-label="别害怕的梦境避难所">
+      <section class="shelter-scene fragment-surface" id="shelterScene" aria-hidden="true" aria-label="别害怕的梦境避难所">
         <canvas class="shelter-canvas" id="shelterCanvas"></canvas>
         <button class="melting-clock" id="meltingClock" type="button" aria-label="让停住的时间短暂快进">
           <svg viewBox="0 0 250 210" aria-hidden="true">
@@ -183,7 +183,7 @@
             <g class="clock-hands"><path d="M127 99 L91 73"/><path class="clock-minute" d="M127 99 L171 63"/><path class="clock-second" d="M127 99 L151 137"/><circle cx="127" cy="99" r="6"/></g>
           </svg>
         </button>
-        <aside class="dream-todo" aria-label="和你一起做的事">
+        <aside class="dream-todo" aria-label="和你一起做的事" data-fragment-interactive>
           <h2>TO DO WITH YOU</h2>
           <ul>
             <li><button type="button" data-dream="movie"><i></i><span>电影</span></button></li>
@@ -200,13 +200,14 @@
           <img src="shelter-person.svg?v=20260911a" alt="站在飞蚊避难所下的小人" />
         </button>
         <div class="dream-echo" id="dreamEcho" aria-hidden="true"></div>
-        <p class="shelter-caption"><span>世界太大</span><span>别感到害怕</span></p>
+        <p class="shelter-caption" data-fragment-interactive><span>世界太大</span><span>别感到害怕</span></p>
       </section>
-      <section class="goodnews-scene" id="goodnewsScene" aria-hidden="true" aria-label="goodnews 的飞蚊五线谱">
+      <section class="goodnews-scene fragment-surface" id="goodnewsScene" aria-hidden="true" aria-label="goodnews 的飞蚊五线谱">
         <canvas class="goodnews-canvas" id="goodnewsCanvas"></canvas>
-        <p class="goodnews-caption">接纳我所有人声</p>
+        <div class="goodnews-score-hit" data-fragment-interactive aria-hidden="true"></div>
+        <p class="goodnews-caption" data-fragment-interactive>接纳我所有人声</p>
       </section>
-      <div class="fragment-caption" id="fragmentCaption" aria-live="polite">
+      <div class="fragment-caption" id="fragmentCaption" aria-live="polite" data-fragment-interactive>
         <small id="fragmentOrder">FRAGMENT 01</small>
         <strong id="fragmentTitle">灯火</strong>
         <div class="fragment-progress"><i id="fragmentProgress"></i></div>
