@@ -44,6 +44,8 @@ const shelterPerson = document.querySelector("#shelterPerson");
 const meltingClock = document.querySelector("#meltingClock");
 const dreamTodo = document.querySelector(".dream-todo");
 const dreamEcho = document.querySelector("#dreamEcho");
+const goodnewsScene = document.querySelector("#goodnewsScene");
+const goodnewsCanvas = document.querySelector("#goodnewsCanvas");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -95,6 +97,11 @@ let shelterRunId = 0;
 let shelterParticles = [];
 let shelterStartedAt = 0;
 let shelterTimers = [];
+let goodnewsFrame;
+let goodnewsRunId = 0;
+let goodnewsParticles = [];
+let goodnewsStartedAt = 0;
+let goodnewsFormTimer;
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -727,8 +734,13 @@ function activateTrack(track, node) {
   } else {
     stopShelterScene();
   }
+  if (track.id === "fragment-06") {
+    startGoodnewsScene(activeAudio);
+  } else {
+    stopGoodnewsScene();
+  }
 
-  const visualDuration = track.id === "fragment-05" ? 16000 : (track.id === "fragment-04" ? 15000 : track.placeholderTone.duration * 1000);
+  const visualDuration = track.id === "fragment-05" ? 16000 : (track.id === "fragment-04" ? 15000 : (track.id === "fragment-06" ? 13600 : track.placeholderTone.duration * 1000));
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
     [{ width: "0%", opacity: 1 }, { width: "100%", opacity: 1 }, { width: "100%", opacity: 0 }],
@@ -999,6 +1011,175 @@ function stopShelterScene() {
   dreamTodo.classList.remove("complete");
   dreamTodo.querySelectorAll("button").forEach(button => button.classList.remove("checked"));
   dreamEcho.className = "dream-echo";
+}
+
+function goodnewsEase(value) {
+  const n = Math.max(0, Math.min(1, value));
+  return n * n * (3 - 2 * n);
+}
+
+function createGoodnewsTargets() {
+  const mobile = window.innerWidth <= 680;
+  const targets = [];
+  const linePoints = mobile ? 29 : 43;
+  for (let line = 0; line < 5; line += 1) {
+    for (let index = 0; index < linePoints; index += 1) {
+      targets.push({
+        nx: -.5 + index / (linePoints - 1),
+        unitY: line - 2,
+        shape: index % 3 === 0 ? "dot" : "dash",
+        angle: 0,
+        note: false
+      });
+    }
+  }
+
+  const notes = mobile
+    ? [[-.3, 1.05, true], [-.08, -.85, false], [.18, 1.9, true], [.36, -.05, false]]
+    : [[-.32, 1.05, true], [-.11, -.85, false], [.12, 1.9, true], [.31, -.05, true]];
+  notes.forEach(([nx, unitY, flagged], noteIndex) => {
+    const flip = noteIndex % 3 === 2;
+    for (let index = 0; index < 11; index += 1) {
+      const angle = Math.PI * 2 * index / 11;
+      targets.push({
+        nx: nx + Math.cos(angle) * .017,
+        unitY: unitY + Math.sin(angle) * .28,
+        shape: "dot",
+        angle: 0,
+        note: true
+      });
+    }
+    [[-.009,-.09],[0,0],[.009,.09],[-.008,.12],[.008,-.12]].forEach(([dx,dy]) => {
+      targets.push({ nx: nx + dx, unitY: unitY + dy, shape: "dot", angle: 0, note: true });
+    });
+    for (let index = 0; index < 8; index += 1) {
+      targets.push({
+        nx: nx + (flip ? -.016 : .016),
+        unitY: unitY - index * .28,
+        shape: "dash",
+        angle: Math.PI / 2,
+        note: true
+      });
+    }
+    if (flagged) {
+      for (let index = 0; index < 7; index += 1) {
+        targets.push({
+          nx: nx + (flip ? -.016 - index * .009 : .016 + index * .009),
+          unitY: unitY - 1.94 + Math.sin(index / 6 * Math.PI) * .3,
+          shape: index % 2 ? "dot" : "dash",
+          angle: flip ? -.45 : .45,
+          note: true
+        });
+      }
+    }
+  });
+  return targets;
+}
+
+function makeGoodnewsParticles() {
+  goodnewsParticles = createGoodnewsTargets().map((target, index) => ({
+    ...target,
+    startX: Math.random(),
+    startY: Math.random(),
+    size: target.note ? .9 + Math.random() * 1.1 : .65 + Math.random() * .85,
+    length: target.note ? 4 + Math.random() * 5 : 5 + Math.random() * 7,
+    phase: Math.random() * Math.PI * 2,
+    speed: .00065 + Math.random() * .00065,
+    opacity: .42 + Math.random() * .42,
+    delay: (index % 17) * 18 + Math.random() * 260
+  }));
+}
+
+function drawGoodnewsScene(timestamp, runId) {
+  if (runId !== goodnewsRunId) return;
+  const rect = goodnewsCanvas.getBoundingClientRect();
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.round(rect.width * ratio);
+  const pixelHeight = Math.round(rect.height * ratio);
+  if (goodnewsCanvas.width !== pixelWidth || goodnewsCanvas.height !== pixelHeight) {
+    goodnewsCanvas.width = pixelWidth;
+    goodnewsCanvas.height = pixelHeight;
+  }
+  const ctx = goodnewsCanvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+
+  const elapsed = timestamp - goodnewsStartedAt;
+  const staffWidth = Math.min(rect.width * (rect.width <= 680 ? .84 : .72), 880);
+  const gap = Math.min(rect.height * (rect.width <= 680 ? .045 : .055), rect.width <= 680 ? 25 : 38);
+  const centerX = rect.width * .5;
+  const centerY = rect.height * (rect.width <= 680 ? .43 : .44);
+  const settled = goodnewsEase((elapsed - 900) / 5600);
+  const floatAmount = goodnewsEase((elapsed - 6100) / 1300);
+  const driftX = Math.sin(elapsed * .00048) * 5 * floatAmount;
+  const driftY = Math.cos(elapsed * .00058) * 8 * floatAmount;
+  const rotation = Math.sin(elapsed * .00036) * .012 * floatAmount;
+
+  goodnewsParticles.forEach(particle => {
+    const individual = goodnewsEase((elapsed - 900 - particle.delay) / 5200);
+    const targetX = centerX + particle.nx * staffWidth;
+    const targetY = centerY + particle.unitY * gap;
+    const localX = targetX - centerX;
+    const localY = targetY - centerY;
+    const rotatedX = centerX + localX * Math.cos(rotation) - localY * Math.sin(rotation) + driftX;
+    const rotatedY = centerY + localX * Math.sin(rotation) + localY * Math.cos(rotation) + driftY;
+    const arcX = Math.sin(individual * Math.PI + particle.phase) * (1 - individual) * 34;
+    const arcY = Math.cos(individual * Math.PI * 1.5 + particle.phase) * (1 - individual) * 22;
+    const wobbleX = Math.sin(timestamp * particle.speed + particle.phase) * (1.5 + (1 - settled) * 5);
+    const wobbleY = Math.cos(timestamp * particle.speed * .83 + particle.phase) * (1.2 + (1 - settled) * 4);
+    const x = particle.startX * rect.width * (1 - individual) + rotatedX * individual + arcX + wobbleX;
+    const y = particle.startY * rect.height * (1 - individual) + rotatedY * individual + arcY + wobbleY;
+    const alpha = particle.opacity * (.22 + individual * .78);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(248,252,255,.96)";
+    ctx.strokeStyle = "rgba(242,249,255,.94)";
+    ctx.shadowColor = particle.note ? "rgba(199,225,255,.72)" : "rgba(178,214,255,.5)";
+    ctx.shadowBlur = particle.note ? 6 : 3.5;
+    ctx.lineCap = "round";
+    if (particle.shape === "dot") {
+      ctx.beginPath();
+      ctx.arc(x, y, particle.size * (particle.note ? 1.15 : 1), 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      const angle = particle.angle + rotation + (1 - individual) * Math.sin(particle.phase) * .7;
+      ctx.lineWidth = Math.max(.9, particle.size * .75);
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(angle) * particle.length * .5, y - Math.sin(angle) * particle.length * .5);
+      ctx.lineTo(x + Math.cos(angle) * particle.length * .5, y + Math.sin(angle) * particle.length * .5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+  goodnewsFrame = requestAnimationFrame(next => drawGoodnewsScene(next, runId));
+}
+
+function startGoodnewsScene(audio) {
+  stopGoodnewsScene();
+  const runId = ++goodnewsRunId;
+  makeGoodnewsParticles();
+  goodnewsStartedAt = performance.now();
+  stage.classList.add("goodnews-moment");
+  goodnewsScene.setAttribute("aria-hidden", "false");
+  goodnewsScene.classList.add("visible");
+  goodnewsFormTimer = setTimeout(() => goodnewsScene.classList.add("formed"), 7000);
+  goodnewsFrame = requestAnimationFrame(next => drawGoodnewsScene(next, runId));
+  if (audio) audio.addEventListener("ended", () => {
+    if (runId === goodnewsRunId) stopGoodnewsScene();
+  }, { once: true });
+}
+
+function stopGoodnewsScene() {
+  goodnewsRunId += 1;
+  if (goodnewsFrame) cancelAnimationFrame(goodnewsFrame);
+  goodnewsFrame = undefined;
+  clearTimeout(goodnewsFormTimer);
+  goodnewsFormTimer = undefined;
+  goodnewsParticles = [];
+  stage.classList.remove("goodnews-moment");
+  goodnewsScene.classList.remove("visible", "formed");
+  goodnewsScene.setAttribute("aria-hidden", "true");
 }
 
 
@@ -1607,6 +1788,7 @@ reset.addEventListener("click", () => {
   hideGrassMessage();
   stopDawnScene();
   stopShelterScene();
+  stopGoodnewsScene();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();
