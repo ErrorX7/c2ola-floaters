@@ -1,4 +1,5 @@
 import "../../goodnews-wave.js?v=20260911a";
+import "../../grass-puzzle-fix.js?v=20260911a";
 
 export const tracks = [
   {
