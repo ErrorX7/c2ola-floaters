@@ -900,10 +900,13 @@ function makeShelterParticles() {
       dark: index % 7 === 0,
       x: Math.random(), y: Math.random(),
       side, lineProgress,
-      size: .75 + Math.random() * 1.75,
+      size: .65 + Math.random() * 1.25,
+      shape: Math.random() < .38 ? "dot" : "dash",
+      length: 3.5 + Math.random() * 6,
+      tilt: (Math.random() - .5) * .75,
       phase: Math.random() * Math.PI * 2,
       speed: .0007 + Math.random() * .001,
-      curl: (Math.random() - .5) * .09
+      opacity: .34 + Math.random() * .42
     };
   });
 }
@@ -925,9 +928,11 @@ function drawShelterScene(timestamp, runId) {
   const personRect = shelterPerson.getBoundingClientRect();
   const sceneRect = shelterScene.getBoundingClientRect();
   const centerX = personRect.left - sceneRect.left + personRect.width * .5;
-  const roofY = Math.max(rect.height * .14, personRect.top - sceneRect.top + personRect.height * .07);
   const halfWidth = Math.min(rect.width * (rect.width <= 680 ? .38 : .27), personRect.width * 1.02);
   const height = Math.min(rect.height * .23, halfWidth * .72);
+  const personTop = personRect.top - sceneRect.top;
+  const roofGap = Math.max(rect.width <= 680 ? 28 : 34, personRect.height * (rect.width <= 680 ? .09 : .075));
+  const roofY = Math.max(rect.height * .1, personTop - height - roofGap);
   const protecting = shelterScene.classList.contains("protecting") ? 1 : 0;
   shelterParticles.forEach((p,index) => {
     const roofParticle = !p.dark;
@@ -945,14 +950,26 @@ function drawShelterScene(timestamp, runId) {
     }
     const glow = gather > .92 && roofParticle ? 1 + Math.sin(timestamp * .002 + p.phase) * .16 : 1;
     ctx.save();
-    ctx.globalAlpha = p.dark ? .22 : (.28 + gather * .6);
-    ctx.strokeStyle = p.dark ? "rgba(1,3,9,.9)" : "rgba(229,242,255,.9)";
-    ctx.fillStyle = p.dark ? "rgba(0,1,5,.78)" : "rgba(232,245,255,.88)";
-    ctx.shadowColor = p.dark ? "transparent" : "rgba(151,207,255,.68)";
-    ctx.shadowBlur = roofParticle ? 5 * glow : 0;
-    ctx.lineWidth = Math.max(.55,p.size * .48);
-    ctx.beginPath(); ctx.arc(x,y,p.size * glow,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x-p.size*2.5,y+p.curl*20); ctx.quadraticCurveTo(x,y-p.size*1.8,x+p.size*2.7,y+p.size*.35); ctx.stroke();
+    ctx.globalAlpha = p.dark ? .1 : p.opacity * (.42 + gather * .58);
+    ctx.strokeStyle = p.dark ? "rgba(119,139,165,.42)" : "rgba(243,248,255,.92)";
+    ctx.fillStyle = p.dark ? "rgba(119,139,165,.34)" : "rgba(247,251,255,.94)";
+    ctx.shadowColor = p.dark ? "transparent" : "rgba(190,222,255,.55)";
+    ctx.shadowBlur = roofParticle ? 3.5 * glow : 0;
+    ctx.lineCap = "round";
+    if (p.shape === "dot") {
+      ctx.beginPath();
+      ctx.arc(x, y, p.size * glow, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      const roofAngle = p.side ? Math.atan2(height, halfWidth) : -Math.atan2(height, halfWidth);
+      const angle = roofAngle + p.tilt;
+      const dashLength = p.length * glow;
+      ctx.lineWidth = Math.max(1, p.size * .72);
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(angle) * dashLength * .5, y - Math.sin(angle) * dashLength * .5);
+      ctx.lineTo(x + Math.cos(angle) * dashLength * .5, y + Math.sin(angle) * dashLength * .5);
+      ctx.stroke();
+    }
     ctx.restore();
   });
   shelterFrame = requestAnimationFrame(next => drawShelterScene(next,runId));

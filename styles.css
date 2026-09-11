@@ -1376,7 +1376,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .dream-todo {
   position: absolute;
   z-index: 6;
-  left: clamp(1.5rem,6vw,6.5rem);
+  left: clamp(5rem,16vw,19rem);
   bottom: clamp(4.2rem,8vh,6.3rem);
   width: clamp(150px,19vw,230px);
   padding: .8rem 1rem .9rem;
@@ -1406,7 +1406,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .shelter-person {
   position: absolute;
   z-index: 4;
-  right: clamp(9vw,16vw,19vw);
+  right: clamp(12vw,22vw,26vw);
   bottom: clamp(5rem,8vh,7rem);
   height: min(57vh,640px);
   aspect-ratio: 2 / 3;
@@ -1432,13 +1432,27 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 @keyframes shelter-words { 45% { opacity: .55; } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 .dream-echo { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
 .dream-echo::before,.dream-echo::after { content:""; position:absolute; opacity:0; pointer-events:none; }
-.dream-echo.movie::before { left:43%; top:23%; width:70px; height:30px; border:1px dashed rgba(218,234,255,.52); animation:dream-flash 2s ease; }
+.dream-echo.movie::before {
+  left: 43%;
+  top: 23%;
+  width: clamp(108px,13vw,178px);
+  aspect-ratio: 1.15 / 1;
+  background: url("dream-movie-ticket.webp?v=20260911a") center / contain no-repeat;
+  mix-blend-mode: screen;
+  filter: invert(1) drop-shadow(0 0 10px rgba(188,222,255,.42));
+  transform: rotate(-7deg);
+  animation: dream-ticket-flash 2.3s ease;
+}
 .dream-echo.dinner::before { left:44%; bottom:24%; width:44px; height:44px; background:radial-gradient(circle,rgba(255,203,126,.42),transparent 67%); animation:dream-flash 2s ease; }
 .dream-echo.river::before { left:33%; right:12%; bottom:13%; height:34px; border-top:1px solid rgba(163,211,255,.3); border-radius:50%; box-shadow:0 -8px rgba(163,211,255,.12); animation:dream-flash 2.4s ease; }
 .dream-echo.europe::before { right:10%; top:17%; width:120px; height:52px; border-top:1px dashed rgba(219,236,255,.52); border-radius:50%; transform:rotate(-24deg); animation:dream-flash 2.2s ease; }
 .dream-echo.song::before { right:9%; top:49%; content:"♪  ♫   ♪"; color:rgba(217,235,255,.65); font-size:1rem; letter-spacing:.8em; animation:dream-flash 2.2s ease; }
 .shelter-scene.swaying .shelter-person { animation:shelter-sway 1.5s ease; }
 @keyframes dream-flash { 20%,65% { opacity:1; } }
+@keyframes dream-ticket-flash {
+  0%,100% { opacity:0; transform:translateY(8px) rotate(-9deg) scale(.92); }
+  22%,68% { opacity:.82; transform:translateY(0) rotate(-7deg) scale(1); }
+}
 @keyframes shelter-sway { 25%{rotate:-2deg} 70%{rotate:2deg} }
 @keyframes clock-glow { 50% { filter:drop-shadow(0 0 23px rgba(235,246,255,.8)); } }
 .shelter-scene.roof-formed .melting-clock { animation: clock-glow 1.4s ease 2.2s 1; }
@@ -1676,6 +1690,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .dream-todo button { min-height: 1.35rem; gap: .4rem; font-size: clamp(.6rem,2.55vw,.72rem); letter-spacing: .03em; }
   .dream-todo button i { width: .53rem; height: .53rem; }
   .shelter-person { right: 4vw; bottom: max(5.2rem,env(safe-area-inset-bottom)); height: min(45vh,430px); }
+  .dream-echo.movie::before { left: 43%; top: 25%; width: min(31vw,132px); }
   .shelter-caption { bottom: max(.9rem,env(safe-area-inset-bottom)); font-size: clamp(.69rem,3.1vw,.86rem); }
 }
   .timeline-memory-caption {
