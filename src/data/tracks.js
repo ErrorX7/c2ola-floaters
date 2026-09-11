@@ -1,3 +1,5 @@
+import "../../goodnews-wave.js?v=20260911a";
+
 export const tracks = [
   {
     id: "deng-huo", order: 1, title: "灯火",
