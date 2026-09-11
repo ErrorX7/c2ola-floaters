@@ -1902,6 +1902,86 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
       max(5.5rem, env(safe-area-inset-bottom));
     overflow: visible;
   }
+  .grass-message {
+  position: absolute;
+  isolation: isolate;
+}
+
+.grass-puzzle-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+
+.grass-message.visible .grass-puzzle-layer {
+  opacity: .95;
+}
+
+.grass-message.exiting .grass-puzzle-layer {
+  opacity: 0;
+}
+
+.grass-message-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.grass-puzzle-piece {
+  position: absolute;
+  left: calc(var(--piece-x) * 1%);
+  top: calc(var(--piece-y) * 1%);
+  width: var(--piece-size);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(var(--piece-rotate));
+  transform-origin: center;
+  opacity: var(--piece-opacity);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  filter: drop-shadow(0 0 10px rgba(210, 231, 255, .18));
+  mix-blend-mode: screen;
+  animation: grass-piece-drift var(--piece-time) ease-in-out var(--piece-delay) infinite alternate;
+}
+
+.grass-puzzle-piece.soft {
+  filter: drop-shadow(0 0 14px rgba(224, 240, 255, .22));
+  opacity: calc(var(--piece-opacity) + .03);
+}
+
+@keyframes grass-piece-drift {
+  from {
+    transform: translate(-50%, -50%) rotate(var(--piece-rotate));
+  }
+  to {
+    transform:
+      translate(calc(-50% + var(--piece-dx)), calc(-50% + var(--piece-dy)))
+      rotate(calc(var(--piece-rotate) + 7deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grass-puzzle-piece {
+    animation: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .grass-puzzle-layer {
+    opacity: 0;
+  }
+
+  .grass-message.visible .grass-puzzle-layer {
+    opacity: .88;
+  }
+
+  .grass-puzzle-piece {
+    width: calc(var(--piece-size) * .78);
+  }
+}
   .grass-message-copy {
     display: flex;
     flex-direction: column;
@@ -1939,6 +2019,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
     font-size: clamp(.7rem, 3.1vw, .9rem);
     letter-spacing: .1em;
   }
+  
   .dawn-earth-image { width: min(68vmin, 520px); }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
