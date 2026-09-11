@@ -1773,12 +1773,11 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .dream-todo h2 { font-size: .54rem; letter-spacing: .11em; }
   .dream-todo button { min-height: 1.35rem; gap: .4rem; font-size: clamp(.6rem,2.55vw,.72rem); letter-spacing: .03em; }
   .dream-todo button i { width: .53rem; height: .53rem; }
-  .shelter-person { right: 4vw; bottom: max(5.2rem,env(safe-area-inset-bottom)); height: min(45vh,430px); }
+  .shelter-person { right: 1vw; bottom: max(5.2rem,env(safe-area-inset-bottom)); height: min(42vh,390px); }
   .dream-echo.movie::before { left: 43%; top: 25%; width: min(31vw,132px); }
   .shelter-caption { bottom: max(.9rem,env(safe-area-inset-bottom)); font-size: clamp(.69rem,3.1vw,.86rem); }
   .goodnews-caption { top: 67%; width:max-content; max-width:88vw; font-size:clamp(1.05rem,5.6vw,1.45rem); letter-spacing:.14em; }
   .goodnews-caption::before,.goodnews-caption::after { width:min(10vw,40px); }
-}
   .timeline-memory-caption {
     top: auto;
     bottom: max(.85rem, env(safe-area-inset-bottom));

@@ -1741,7 +1741,7 @@ dreamTodo.addEventListener("click", event => {
     shelterScene.classList.remove("swaying");
     void shelterScene.offsetWidth;
     shelterScene.classList.add("swaying");
-    setTimeout(() => shelterScene.classList.remove("swaying"), 1600);
+    shelterTimers.push(setTimeout(() => shelterScene.classList.remove("swaying"), 1600));
   }
   const complete = [...dreamTodo.querySelectorAll("button[data-dream]")].every(item => item.classList.contains("checked"));
   dreamTodo.classList.toggle("complete", complete);
@@ -1750,7 +1750,7 @@ dreamTodo.addEventListener("click", event => {
 const protectShelter = () => {
   if (!shelterScene.classList.contains("visible")) return;
   shelterScene.classList.add("protecting");
-  setTimeout(() => shelterScene.classList.remove("protecting"), 1300);
+  shelterTimers.push(setTimeout(() => shelterScene.classList.remove("protecting"), 1300));
 };
 shelterPerson.addEventListener("pointerenter", protectShelter);
 shelterPerson.addEventListener("click", event => { event.stopPropagation(); protectShelter(); });
@@ -1760,7 +1760,7 @@ meltingClock.addEventListener("click", event => {
   shelterScene.classList.remove("fast-forward");
   void shelterScene.offsetWidth;
   shelterScene.classList.add("fast-forward");
-  setTimeout(() => shelterScene.classList.remove("fast-forward"), 1700);
+  shelterTimers.push(setTimeout(() => shelterScene.classList.remove("fast-forward"), 1700));
 });
 
 window.addEventListener("keydown", event => {
