@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#02040a" />
   <meta name="description" content="小酷《飞蚊症》非官方互动音乐碎片体验。" />
   <title>飞蚊症 / FLOATERS</title>
-  <link rel="stylesheet" href="styles.css?v=20260910m" />
+  <link rel="stylesheet" href="styles.css?v=20260911n" />
 </head>
 <body>
   <main class="stage" id="stage">
@@ -174,6 +174,34 @@
         <canvas class="dawn-canvas" id="dawnCanvas"></canvas>
         <p class="dawn-caption">世界太假我带你逃离</p>
       </section>
+      <section class="shelter-scene" id="shelterScene" aria-hidden="true" aria-label="别害怕的梦境避难所">
+        <canvas class="shelter-canvas" id="shelterCanvas"></canvas>
+        <button class="melting-clock" id="meltingClock" type="button" aria-label="让停住的时间短暂快进">
+          <svg viewBox="0 0 250 210" aria-hidden="true">
+            <path class="clock-body" d="M48 35 C69 13 111 13 150 22 C190 31 222 55 224 88 C226 115 207 127 196 144 C186 160 193 184 169 194 C141 205 125 175 101 175 C77 175 55 190 35 169 C18 151 35 129 31 107 C27 84 23 60 48 35 Z"/>
+            <g class="clock-marks"><path d="M128 33v13M176 50l-7 12M205 88l-14 2M196 130l-13-5M163 164l-7-13M106 163l3-13M63 137l12-7M48 91l14 2M77 53l8 11"/></g>
+            <g class="clock-hands"><path d="M127 99 L91 73"/><path class="clock-minute" d="M127 99 L171 63"/><path class="clock-second" d="M127 99 L151 137"/><circle cx="127" cy="99" r="6"/></g>
+          </svg>
+        </button>
+        <aside class="dream-todo" aria-label="和你一起做的事">
+          <h2>TO DO WITH YOU</h2>
+          <ul>
+            <li><button type="button" data-dream="movie"><i></i><span>电影</span></button></li>
+            <li><button type="button" data-dream="dinner"><i></i><span>楼下餐厅</span></button></li>
+            <li><button type="button" data-dream="river"><i></i><span>江畔</span></button></li>
+            <li><button type="button" data-dream="europe"><i></i><span>欧洲</span></button></li>
+            <li><button type="button" data-dream="sway"><i></i><span>晃晃悠悠</span></button></li>
+            <li><button type="button" data-dream="song"><i></i><span>一起写歌</span></button></li>
+          </ul>
+          <p class="todo-secret">慢慢实现。</p>
+        </aside>
+        <button class="shelter-person" id="shelterPerson" type="button" aria-label="触碰避难所里的小人">
+          <span class="shelter-light" aria-hidden="true"></span>
+          <img src="shelter-person.svg?v=20260911a" alt="站在飞蚊避难所下的小人" />
+        </button>
+        <div class="dream-echo" id="dreamEcho" aria-hidden="true"></div>
+        <p class="shelter-caption"><span>世界太大</span><span>别感到害怕</span></p>
+      </section>
       <div class="fragment-caption" id="fragmentCaption" aria-live="polite">
         <small id="fragmentOrder">FRAGMENT 01</small>
         <strong id="fragmentTitle">灯火</strong>
@@ -200,6 +228,6 @@
     <div class="vignette"></div>
   </main>
   <audio id="introAudio" src="intro.mp3?v=20260909g" preload="auto" loop playsinline></audio>
-  <script type="module" src="app.js?v=20260911e"></script>
+  <script type="module" src="app.js?v=20260911f"></script>
 </body>
 </html>
