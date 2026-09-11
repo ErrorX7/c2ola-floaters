@@ -1188,35 +1188,38 @@ function goodnewsEase(value) {
 }
 
 function goodnewsCurvePoint(progress, line = 0) {
-  const bend = Math.pow(Math.max(0, (progress - .36) / .64), 1.58);
+  // Five related, but never perfectly parallel, trails: more like light floaters
+  // briefly suggesting a score than a rigid printed staff.
+  const bend = Math.pow(Math.max(0, (progress - .42) / .58), 1.72);
+  const lineWave = Math.sin(progress * Math.PI * (1.24 + line * .045) + line * .76) * (.082 + Math.abs(line) * .009);
   const x = -.5 + progress;
-  const y = .64 - bend * 4.55 + Math.sin(progress * Math.PI * 1.18) * .1 + line;
-  const slope = -7.1 * Math.pow(Math.max(.001, (progress - .36) / .64), .58) / .64
-    + Math.cos(progress * Math.PI * 1.18) * .118 * Math.PI;
+  const y = .42 - bend * 3.92 + line * .91 + lineWave;
+  const slope = -6.74 * Math.pow(Math.max(.001, (progress - .42) / .58), .72) / .58
+    + Math.cos(progress * Math.PI * (1.24 + line * .045) + line * .76) * (.082 + Math.abs(line) * .009) * Math.PI * (1.24 + line * .045);
   return { x, y, angle: Math.atan2(slope, 1) };
 }
 
 function createGoodnewsTargets() {
   const mobile = window.innerWidth <= 680;
   const targets = [];
-  const linePoints = mobile ? 36 : 54;
+  const linePoints = mobile ? 28 : 42;
   for (let line = -2; line <= 2; line += 1) {
     for (let index = 0; index < linePoints; index += 1) {
       const point = goodnewsCurvePoint(index / (linePoints - 1), line);
       targets.push({
         nx: point.x,
         unitY: point.y,
-        shape: index % 4 === 0 ? "dot" : "dash",
+        shape: index % 7 === 0 ? "dot" : "dash",
         angle: point.angle,
         note: false,
-        weight: .7
+        weight: .52 + (index % 5) * .045
       });
     }
   }
 
   const notes = mobile
     ? [[.18, .9, false], [.43, -.55, true], [.64, .75, false], [.8, -.5, true]]
-    : [[.13, 1, false], [.34, -.75, true], [.55, 1.2, false], [.72, -.1, true], [.86, .72, false]];
+    : [[.14, .78, false], [.35, -.58, true], [.56, .9, false], [.73, -.12, true], [.87, .5, false]];
   notes.forEach(([progress, offset, flagged], noteIndex) => {
     const base = goodnewsCurvePoint(progress, offset);
     const stemUp = noteIndex % 3 !== 2;
@@ -1264,10 +1267,10 @@ function makeGoodnewsParticles() {
     startX: Math.random(),
     startY: Math.random(),
     size: (target.note ? .95 : .68) + Math.random() * (target.note ? 1.1 : .72),
-    length: (target.note ? 4.5 : 5.5) + Math.random() * 5.5,
+    length: (target.note ? 4.5 : 7.5) + Math.random() * (target.note ? 5.5 : 9),
     phase: Math.random() * Math.PI * 2,
     speed: .00055 + Math.random() * .00065,
-    opacity: .5 + Math.random() * .42,
+    opacity: .35 + Math.random() * .38,
     delay: (index % 19) * 17 + Math.random() * 260
   }));
 }
@@ -1294,8 +1297,8 @@ function drawGoodnewsScene(timestamp, runId) {
   const centerY = rect.height * (mobile ? .55 : .59);
   const settled = goodnewsEase((elapsed - 650) / 5000);
   const floatAmount = goodnewsEase((elapsed - 5000) / 1500);
-  const driftX = Math.sin(elapsed * .00043) * 5.5 * floatAmount;
-  const driftY = Math.cos(elapsed * .00052) * 7 * floatAmount;
+  const driftX = Math.sin(elapsed * .00043) * 7 * floatAmount;
+  const driftY = Math.cos(elapsed * .00052) * 9 * floatAmount;
 
   goodnewsParticles.forEach(particle => {
     const individual = reducedMotion ? 1 : goodnewsEase((elapsed - 520 - particle.delay) / 4700);
@@ -1303,18 +1306,19 @@ function drawGoodnewsScene(timestamp, runId) {
     const targetY = centerY + particle.unitY * gap + driftY;
     const arcX = Math.sin(individual * Math.PI + particle.phase) * (1 - individual) * 38;
     const arcY = Math.cos(individual * Math.PI * 1.45 + particle.phase) * (1 - individual) * 28;
-    const wobbleX = Math.sin(timestamp * particle.speed + particle.phase) * (1.4 + (1 - settled) * 6);
-    const wobbleY = Math.cos(timestamp * particle.speed * .81 + particle.phase) * (1.2 + (1 - settled) * 5);
+    const lineFloat = particle.note ? .55 : 1;
+    const wobbleX = Math.sin(timestamp * particle.speed + particle.phase) * lineFloat * (2.2 + (1 - settled) * 6);
+    const wobbleY = Math.cos(timestamp * particle.speed * .81 + particle.phase) * lineFloat * (1.9 + (1 - settled) * 5);
     const x = particle.startX * rect.width * (1 - individual) + targetX * individual + arcX + wobbleX;
     const y = particle.startY * rect.height * (1 - individual) + targetY * individual + arcY + wobbleY;
     const alpha = particle.opacity * (.18 + individual * .82);
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "rgba(255,255,255,.98)";
-    ctx.strokeStyle = "rgba(255,255,255,.95)";
-    ctx.shadowColor = particle.note ? "rgba(220,235,255,.72)" : "rgba(205,228,255,.44)";
-    ctx.shadowBlur = particle.note ? 6.5 : 3.2;
+    ctx.fillStyle = "rgba(255,255,255,.94)";
+    ctx.strokeStyle = "rgba(255,255,255,.88)";
+    ctx.shadowColor = particle.note ? "rgba(220,235,255,.62)" : "rgba(205,228,255,.3)";
+    ctx.shadowBlur = particle.note ? 5.5 : 2.1;
     ctx.lineCap = "round";
     if (particle.shape === "dot") {
       ctx.beginPath();
