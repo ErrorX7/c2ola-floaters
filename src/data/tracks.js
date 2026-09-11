@@ -130,8 +130,6 @@ function installGoodnewsCurvedScore() {
   };
 
   function curvePoint(t, line = 0) {
-    // Left side glides almost horizontally, then rises decisively toward the
-    // upper-right like a ribbon of sheet music.
     const bend = Math.pow(Math.max(0, (t - .36) / .64), 1.58);
     const x = -.5 + t;
     const y = .64 - bend * 4.55 + Math.sin(t * Math.PI * 1.18) * .10 + line;
@@ -310,3 +308,207 @@ function installGoodnewsCurvedScore() {
 }
 
 installGoodnewsCurvedScore();
+
+// Fragment 04 / 别害怕: keep the audio ending naturally around 10s, hold the
+// completed visual until 15s, then fade back to the second-scene exploration.
+// This layer is installed before app.js finishes evaluating, so it can track the
+// shelter animation frame and the track Audio instance without changing other nodes.
+function installShelterLifecycle() {
+  const scene = document.querySelector("#shelterScene");
+  const canvas = document.querySelector("#shelterCanvas");
+  const stage = document.querySelector("#stage");
+  const world = document.querySelector("#world");
+  const caption = document.querySelector("#fragmentCaption");
+  const progress = document.querySelector("#fragmentProgress");
+  const worldHint = document.querySelector("#worldHint");
+  const todo = document.querySelector(".dream-todo");
+  const dreamEcho = document.querySelector("#dreamEcho");
+  if (!scene || !canvas || !stage || !world || !caption || !progress || !worldHint || !todo || !dreamEcho) return;
+
+  const TOTAL_MS = 15000;
+  const EXIT_MS = 800;
+  const DEFAULT_HINT = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let shelterActive = false;
+  let sessionId = 0;
+  let autoExitTimer = 0;
+  let visualExitAnimation = null;
+  let audioFadeFrame = 0;
+  let shelterAudio = null;
+
+  // Track only the requestAnimationFrame chain used by drawShelterScene so an
+  // early dismissal can stop it instead of leaving a hidden loop running.
+  const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+  const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+  const shelterFrames = new Set();
+  window.requestAnimationFrame = callback => {
+    const source = typeof callback === "function" ? Function.prototype.toString.call(callback) : "";
+    if (!source.includes("drawShelterScene")) return nativeRequestAnimationFrame(callback);
+    let frameId = 0;
+    const wrapped = timestamp => {
+      shelterFrames.delete(frameId);
+      callback(timestamp);
+    };
+    frameId = nativeRequestAnimationFrame(wrapped);
+    shelterFrames.add(frameId);
+    return frameId;
+  };
+  window.cancelAnimationFrame = frameId => {
+    shelterFrames.delete(frameId);
+    nativeCancelAnimationFrame(frameId);
+  };
+
+  const cancelShelterFrames = () => {
+    shelterFrames.forEach(frameId => nativeCancelAnimationFrame(frameId));
+    shelterFrames.clear();
+  };
+
+  // app.js creates track audio with `new Audio(...)`; remember only 别害怕's
+  // instance so background dismissal can fade it without touching other songs.
+  const NativeAudio = window.Audio;
+  function LifecycleAudio(...args) {
+    const media = new NativeAudio(...args);
+    const source = String(args[0] || "");
+    if (/biehaipa\.mp3(?:\?|$)/i.test(source)) shelterAudio = media;
+    return media;
+  }
+  LifecycleAudio.prototype = NativeAudio.prototype;
+  Object.setPrototypeOf(LifecycleAudio, NativeAudio);
+  window.Audio = LifecycleAudio;
+
+  const clearAutoExit = () => {
+    if (autoExitTimer) clearTimeout(autoExitTimer);
+    autoExitTimer = 0;
+  };
+
+  const stopAudioImmediately = media => {
+    if (!media) return;
+    media.pause();
+    try { media.currentTime = 0; } catch (_) { /* metadata may not be ready */ }
+    if (shelterAudio === media) shelterAudio = null;
+  };
+
+  const fadeShelterAudio = (media, duration) => {
+    if (!media || media.paused || media.ended) {
+      stopAudioImmediately(media);
+      return;
+    }
+    if (audioFadeFrame) nativeCancelAnimationFrame(audioFadeFrame);
+    const startedAt = performance.now();
+    const startVolume = Number.isFinite(media.volume) ? media.volume : .42;
+    const step = now => {
+      const amount = Math.min(1, Math.max(0, (now - startedAt) / duration));
+      media.volume = startVolume * (1 - amount);
+      if (amount < 1) {
+        audioFadeFrame = nativeRequestAnimationFrame(step);
+      } else {
+        audioFadeFrame = 0;
+        stopAudioImmediately(media);
+      }
+    };
+    audioFadeFrame = nativeRequestAnimationFrame(step);
+  };
+
+  const resetShelterDom = media => {
+    cancelShelterFrames();
+    if (audioFadeFrame) nativeCancelAnimationFrame(audioFadeFrame);
+    audioFadeFrame = 0;
+    stopAudioImmediately(media);
+
+    scene.classList.remove("visible", "roof-formed", "protecting", "fast-forward", "swaying");
+    scene.setAttribute("aria-hidden", "true");
+    stage.classList.remove("shelter-moment");
+    todo.classList.remove("complete");
+    todo.querySelectorAll("button[data-dream]").forEach(button => button.classList.remove("checked"));
+    dreamEcho.className = "dream-echo";
+
+    const context = canvas.getContext("2d");
+    context?.clearRect(0, 0, canvas.width, canvas.height);
+
+    const node = document.querySelector('[data-track-id="fragment-04"]');
+    node?.classList.remove("active", "near");
+    world.classList.remove("fragment-active");
+    caption.classList.remove("visible");
+    progress.getAnimations().forEach(animation => animation.cancel());
+    worldHint.textContent = DEFAULT_HINT;
+  };
+
+  const cancelSession = ({ resetVisual = false } = {}) => {
+    shelterActive = false;
+    sessionId += 1;
+    clearAutoExit();
+    if (visualExitAnimation) {
+      try { visualExitAnimation.cancel(); } catch (_) { /* already finished */ }
+      visualExitAnimation = null;
+    }
+    if (resetVisual) resetShelterDom(shelterAudio);
+  };
+
+  const dismissShelter = reason => {
+    if (!shelterActive || !scene.classList.contains("visible")) return;
+    shelterActive = false;
+    clearAutoExit();
+    const thisSession = sessionId;
+    const media = shelterAudio;
+    const duration = reducedMotion ? 80 : EXIT_MS;
+
+    if (reason === "background") fadeShelterAudio(media, duration);
+
+    if (visualExitAnimation) {
+      try { visualExitAnimation.cancel(); } catch (_) { /* already finished */ }
+    }
+    visualExitAnimation = scene.animate(
+      [
+        { opacity: 1, filter: "blur(0px)" },
+        { opacity: 0, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }
+      ],
+      { duration, easing: "cubic-bezier(.22,.68,.28,1)", fill: "forwards" }
+    );
+
+    visualExitAnimation.finished.then(() => {
+      if (thisSession !== sessionId) return;
+      visualExitAnimation = null;
+      resetShelterDom(media);
+      sessionId += 1;
+    }).catch(() => {});
+  };
+
+  const beginSession = () => {
+    shelterActive = true;
+    sessionId += 1;
+    clearAutoExit();
+    if (visualExitAnimation) {
+      try { visualExitAnimation.cancel(); } catch (_) { /* already finished */ }
+      visualExitAnimation = null;
+    }
+    scene.style.removeProperty("filter");
+    scene.style.removeProperty("opacity");
+    const thisSession = sessionId;
+    autoExitTimer = window.setTimeout(() => {
+      if (shelterActive && sessionId === thisSession && scene.classList.contains("visible")) {
+        dismissShelter("auto");
+      }
+    }, TOTAL_MS);
+  };
+
+  // A new track makes app.js remove .visible from this scene. Cancel our timer
+  // immediately so this node can never clear a later node by accident.
+  new MutationObserver(() => {
+    if (scene.classList.contains("visible")) {
+      if (!shelterActive && !visualExitAnimation) beginSession();
+    } else if (shelterActive || autoExitTimer || visualExitAnimation) {
+      cancelSession();
+    }
+  }).observe(scene, { attributes: true, attributeFilter: ["class"] });
+
+  scene.addEventListener("click", event => {
+    if (!shelterActive || !scene.classList.contains("visible")) return;
+    // The checklist itself, its buttons, the person, clock, and any future
+    // focusable controls inside this node are meaningful content, not background.
+    if (event.target.closest("button, a, input, textarea, select, label, .dream-todo, [role='button']")) return;
+    dismissShelter("background");
+  });
+}
+
+installShelterLifecycle();
