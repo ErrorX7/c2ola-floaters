@@ -38,6 +38,12 @@ const timelineMemoryCaption = document.querySelector("#timelineMemoryCaption");
 const grassMessage = document.querySelector("#grassMessage");
 const dawnScene = document.querySelector("#dawnScene");
 const dawnCanvas = document.querySelector("#dawnCanvas");
+const shelterScene = document.querySelector("#shelterScene");
+const shelterCanvas = document.querySelector("#shelterCanvas");
+const shelterPerson = document.querySelector("#shelterPerson");
+const meltingClock = document.querySelector("#meltingClock");
+const dreamTodo = document.querySelector(".dream-todo");
+const dreamEcho = document.querySelector("#dreamEcho");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pointer = {
@@ -84,6 +90,11 @@ let timelineVideo;
 let dawnFrame;
 let dawnRunId = 0;
 let dawnParticles = [];
+let shelterFrame;
+let shelterRunId = 0;
+let shelterParticles = [];
+let shelterStartedAt = 0;
+let shelterTimers = [];
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -711,8 +722,13 @@ function activateTrack(track, node) {
   } else {
     stopDawnScene();
   }
+  if (track.id === "fragment-04") {
+    startShelterScene();
+  } else {
+    stopShelterScene();
+  }
 
-  const visualDuration = track.id === "fragment-05" ? 16000 : track.placeholderTone.duration * 1000;
+  const visualDuration = track.id === "fragment-05" ? 16000 : (track.id === "fragment-04" ? 15000 : track.placeholderTone.duration * 1000);
   if (progressAnimation) progressAnimation.cancel();
   progressAnimation = fragmentProgress.animate(
     [{ width: "0%", opacity: 1 }, { width: "100%", opacity: 1 }, { width: "100%", opacity: 0 }],
@@ -868,6 +884,104 @@ function stopDawnScene() {
   stage.classList.remove("dawn-moment");
   dawnScene.classList.remove("visible");
   dawnScene.setAttribute("aria-hidden", "true");
+}
+
+function shelterEase(value) {
+  const n = Math.max(0, Math.min(1, value));
+  return n * n * (3 - 2 * n);
+}
+
+function makeShelterParticles() {
+  const count = reducedMotion ? 46 : (window.innerWidth <= 680 ? 86 : 138);
+  shelterParticles = Array.from({ length: count }, (_, index) => {
+    const side = index % 2;
+    const lineProgress = (Math.floor(index / 2) + Math.random() * .55) / Math.ceil(count / 2);
+    return {
+      dark: index % 7 === 0,
+      x: Math.random(), y: Math.random(),
+      side, lineProgress,
+      size: .75 + Math.random() * 1.75,
+      phase: Math.random() * Math.PI * 2,
+      speed: .0007 + Math.random() * .001,
+      curl: (Math.random() - .5) * .09
+    };
+  });
+}
+
+function drawShelterScene(timestamp, runId) {
+  if (runId !== shelterRunId) return;
+  const rect = shelterCanvas.getBoundingClientRect();
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.round(rect.width * ratio);
+  const pixelHeight = Math.round(rect.height * ratio);
+  if (shelterCanvas.width !== pixelWidth || shelterCanvas.height !== pixelHeight) {
+    shelterCanvas.width = pixelWidth; shelterCanvas.height = pixelHeight;
+  }
+  const ctx = shelterCanvas.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0,0,rect.width,rect.height);
+  const elapsed = timestamp - shelterStartedAt;
+  const gather = reducedMotion ? 1 : shelterEase((elapsed - 2300) / 6800);
+  const personRect = shelterPerson.getBoundingClientRect();
+  const sceneRect = shelterScene.getBoundingClientRect();
+  const centerX = personRect.left - sceneRect.left + personRect.width * .5;
+  const roofY = Math.max(rect.height * .14, personRect.top - sceneRect.top + personRect.height * .07);
+  const halfWidth = Math.min(rect.width * (rect.width <= 680 ? .38 : .27), personRect.width * 1.02);
+  const height = Math.min(rect.height * .23, halfWidth * .72);
+  const protecting = shelterScene.classList.contains("protecting") ? 1 : 0;
+  shelterParticles.forEach((p,index) => {
+    const roofParticle = !p.dark;
+    const endpointX = centerX + (p.side ? 1 : -1) * p.lineProgress * halfWidth * (1 + protecting * .11);
+    const endpointY = roofY + p.lineProgress * height - protecting * Math.sin(p.lineProgress * Math.PI) * 11;
+    const wobbleX = Math.sin(timestamp * p.speed + p.phase) * (roofParticle ? 4 : 13);
+    const wobbleY = Math.cos(timestamp * p.speed * .83 + p.phase) * (roofParticle ? 3 : 9);
+    let x = (p.x * rect.width) * (1 - gather) + endpointX * gather + wobbleX;
+    let y = (p.y * rect.height) * (1 - gather) + endpointY * gather + wobbleY;
+    if (p.dark) {
+      x = ((p.x * rect.width + elapsed * (.009 + index % 3 * .003)) % (rect.width + 60)) - 30;
+      y = p.y * rect.height + wobbleY;
+      const dx = x - centerX, dy = y - (roofY + height * .65);
+      if (Math.abs(dx) < halfWidth * 1.15 && Math.abs(dy) < height * 1.15) x += Math.sign(dx || 1) * 42;
+    }
+    const glow = gather > .92 && roofParticle ? 1 + Math.sin(timestamp * .002 + p.phase) * .16 : 1;
+    ctx.save();
+    ctx.globalAlpha = p.dark ? .22 : (.28 + gather * .6);
+    ctx.strokeStyle = p.dark ? "rgba(1,3,9,.9)" : "rgba(229,242,255,.9)";
+    ctx.fillStyle = p.dark ? "rgba(0,1,5,.78)" : "rgba(232,245,255,.88)";
+    ctx.shadowColor = p.dark ? "transparent" : "rgba(151,207,255,.68)";
+    ctx.shadowBlur = roofParticle ? 5 * glow : 0;
+    ctx.lineWidth = Math.max(.55,p.size * .48);
+    ctx.beginPath(); ctx.arc(x,y,p.size * glow,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x-p.size*2.5,y+p.curl*20); ctx.quadraticCurveTo(x,y-p.size*1.8,x+p.size*2.7,y+p.size*.35); ctx.stroke();
+    ctx.restore();
+  });
+  shelterFrame = requestAnimationFrame(next => drawShelterScene(next,runId));
+}
+
+function startShelterScene() {
+  stopShelterScene();
+  const runId = ++shelterRunId;
+  makeShelterParticles();
+  shelterStartedAt = performance.now();
+  stage.classList.add("shelter-moment");
+  shelterScene.setAttribute("aria-hidden","false");
+  shelterScene.classList.add("visible");
+  shelterTimers.push(setTimeout(() => shelterScene.classList.add("roof-formed"), 9000));
+  shelterFrame = requestAnimationFrame(next => drawShelterScene(next,runId));
+}
+
+function stopShelterScene() {
+  shelterRunId += 1;
+  if (shelterFrame) cancelAnimationFrame(shelterFrame);
+  shelterFrame = undefined;
+  shelterTimers.forEach(clearTimeout); shelterTimers = [];
+  shelterParticles = [];
+  stage.classList.remove("shelter-moment");
+  shelterScene.classList.remove("visible","roof-formed","protecting","fast-forward","swaying");
+  shelterScene.setAttribute("aria-hidden","true");
+  dreamTodo.classList.remove("complete");
+  dreamTodo.querySelectorAll("button").forEach(button => button.classList.remove("checked"));
+  dreamEcho.className = "dream-echo";
 }
 
 
@@ -1417,6 +1531,40 @@ timelineMemoryBackdrop.addEventListener("click", event => {
   closeTimelineMemory();
 });
 
+dreamTodo.addEventListener("click", event => {
+  const button = event.target.closest("button[data-dream]");
+  if (!button) return;
+  event.stopPropagation();
+  button.classList.toggle("checked");
+  dreamEcho.className = `dream-echo ${button.dataset.dream}`;
+  void dreamEcho.offsetWidth;
+  dreamEcho.className = `dream-echo ${button.dataset.dream}`;
+  if (button.dataset.dream === "sway") {
+    shelterScene.classList.remove("swaying");
+    void shelterScene.offsetWidth;
+    shelterScene.classList.add("swaying");
+    setTimeout(() => shelterScene.classList.remove("swaying"), 1600);
+  }
+  const complete = [...dreamTodo.querySelectorAll("button[data-dream]")].every(item => item.classList.contains("checked"));
+  dreamTodo.classList.toggle("complete", complete);
+});
+
+const protectShelter = () => {
+  if (!shelterScene.classList.contains("visible")) return;
+  shelterScene.classList.add("protecting");
+  setTimeout(() => shelterScene.classList.remove("protecting"), 1300);
+};
+shelterPerson.addEventListener("pointerenter", protectShelter);
+shelterPerson.addEventListener("click", event => { event.stopPropagation(); protectShelter(); });
+meltingClock.addEventListener("click", event => {
+  event.stopPropagation();
+  if (!shelterScene.classList.contains("roof-formed")) return;
+  shelterScene.classList.remove("fast-forward");
+  void shelterScene.offsetWidth;
+  shelterScene.classList.add("fast-forward");
+  setTimeout(() => shelterScene.classList.remove("fast-forward"), 1700);
+});
+
 window.addEventListener("keydown", event => {
   if (event.key === "Escape" && timelineMemory.getAttribute("aria-hidden") === "false") {
     closeTimelineMemory();
@@ -1441,6 +1589,7 @@ reset.addEventListener("click", () => {
   hideWildsEntry();
   hideGrassMessage();
   stopDawnScene();
+  stopShelterScene();
   stopAudio();
   introAudio.currentTime = 0;
   if (!muted) startIntroAudio();
