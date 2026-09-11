@@ -1269,10 +1269,33 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 }
 .dawn-canvas {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+.dawn-earth-image {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 49%;
+  width: min(62vmin, 680px);
+  height: auto;
+  display: block;
+  clip-path: circle(41% at 50% 50%);
+  image-rendering: pixelated;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.88);
+  filter: saturate(.88) brightness(.9) drop-shadow(0 0 19px rgba(159, 201, 239, .34));
+  transition: opacity 1.35s ease, transform 1.6s cubic-bezier(.18, .72, .22, 1);
+}
+.dawn-scene.visible .dawn-earth-image {
+  opacity: .94;
+  transform: translate(-50%, -50%) scale(1);
+  animation: dawn-earth-float 7s ease-in-out 1.6s infinite alternate;
+}
+@keyframes dawn-earth-float {
+  to { translate: 0 -7px; filter: saturate(.92) brightness(.94) drop-shadow(0 0 28px rgba(159, 201, 239, .42)); }
 }
 .dawn-caption {
   position: absolute;
@@ -1654,6 +1677,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
     font-size: clamp(.7rem, 3.1vw, .9rem);
     letter-spacing: .1em;
   }
+  .dawn-earth-image { width: min(68vmin, 520px); }
   .poster-close { width: 1.55rem; height: 1.55rem; font-size: 1.1rem; }
   @keyframes poster-unfold {
     0% { right: -22vw; bottom: -15vh; opacity: .12; transform: rotate(-11deg) scale(.08); clip-path: polygon(100% 100%,89% 100%,100% 89%); }

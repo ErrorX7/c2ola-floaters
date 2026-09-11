@@ -773,93 +773,11 @@ function createDawnParticles() {
 
 function drawDawnEarth(context, width, height, progress) {
   const mobile = width <= 680;
-  const radius = Math.min(width, height) * (mobile ? .155 : .19);
-  const x = width * .5;
-  const y = height * .49;
-  const appear = dawnEase(progress / .12);
-  const dotStep = Math.max(8, radius * .092);
-  const rotation = Math.sin(progress * Math.PI * 1.1) * .055;
-  context.save();
-  context.globalAlpha = appear;
-  context.translate(x, y);
-  context.scale(.92 + appear * .08, .92 + appear * .08);
-
-  const haze = context.createRadialGradient(0, 0, radius * .28, 0, 0, radius * 1.34);
-  haze.addColorStop(0, "rgba(159, 201, 239, .12)");
-  haze.addColorStop(.68, "rgba(108, 161, 215, .065)");
-  haze.addColorStop(1, "rgba(78, 127, 190, 0)");
-  context.fillStyle = haze;
-  context.beginPath();
-  context.arc(0, 0, radius * 1.34, 0, Math.PI * 2);
-  context.fill();
-
-  const ellipseContains = (px, py, cx, cy, rx, ry, angle = 0) => {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const dx = px - cx;
-    const dy = py - cy;
-    const localX = dx * cos + dy * sin;
-    const localY = -dx * sin + dy * cos;
-    return (localX * localX) / (rx * rx) + (localY * localY) / (ry * ry) <= 1;
+  return {
+    x: width * .5,
+    y: height * .49,
+    radius: Math.min(width, height) * (mobile ? .28 : .25)
   };
-  const isLand = (px, py) => {
-    const shiftedX = px + rotation;
-    const americas = ellipseContains(shiftedX, py, -.43, -.23, .23, .34, -.42)
-      || ellipseContains(shiftedX, py, -.3, .29, .15, .36, -.14)
-      || ellipseContains(shiftedX, py, -.56, -.54, .13, .11, -.1);
-    const oldWorld = ellipseContains(shiftedX, py, .28, -.24, .46, .25, .08)
-      || ellipseContains(shiftedX, py, .2, .18, .2, .39, -.2)
-      || ellipseContains(shiftedX, py, .58, .18, .13, .17, .28);
-    const islands = ellipseContains(shiftedX, py, .58, .51, .12, .08, -.2)
-      || ellipseContains(shiftedX, py, -.04, -.58, .1, .07, .15);
-    const cutout = ellipseContains(shiftedX, py, -.16, -.09, .14, .12, -.3)
-      || ellipseContains(shiftedX, py, .42, .02, .17, .12, .2);
-    return (americas || oldWorld || islands) && !cutout;
-  };
-
-  for (let py = -radius * .9; py <= radius * .9; py += dotStep) {
-    const row = Math.round((py + radius) / dotStep);
-    for (let px = -radius * .9; px <= radius * .9; px += dotStep) {
-      const offsetX = px + (row % 2 ? dotStep * .5 : 0);
-      const normalizedX = offsetX / radius;
-      const normalizedY = py / radius;
-      const distance = Math.hypot(normalizedX, normalizedY);
-      if (distance > .94) continue;
-      const land = isLand(normalizedX, normalizedY);
-      const edgeFade = Math.max(.18, 1 - Math.pow(distance, 3) * .72);
-      const dotRadius = dotStep * (land ? .34 : .19) * edgeFade;
-      context.beginPath();
-      context.fillStyle = land
-        ? `rgba(220, 235, 255, ${.74 + edgeFade * .2})`
-        : `rgba(145, 184, 221, ${.2 + edgeFade * .25})`;
-      context.shadowColor = land ? "rgba(188, 218, 255, .72)" : "rgba(118, 170, 221, .34)";
-      context.shadowBlur = land ? dotRadius * 3.1 : dotRadius * 1.8;
-      context.arc(offsetX, py, Math.max(.65, dotRadius), 0, Math.PI * 2);
-      context.fill();
-    }
-  }
-
-  context.shadowBlur = 0;
-  const rimDots = mobile ? 72 : 92;
-  for (let index = 0; index < rimDots; index += 1) {
-    const angle = index / rimDots * Math.PI * 2;
-    const pulse = .82 + Math.sin(index * 1.87) * .16;
-    const dotRadius = Math.max(.75, dotStep * .13 * pulse);
-    context.beginPath();
-    context.fillStyle = `rgba(212, 229, 255, ${.44 + pulse * .28})`;
-    context.arc(Math.cos(angle) * radius, Math.sin(angle) * radius, dotRadius, 0, Math.PI * 2);
-    context.fill();
-  }
-
-  context.strokeStyle = "rgba(159, 201, 239, .22)";
-  context.lineWidth = Math.max(.7, radius * .005);
-  context.setLineDash([radius * .026, radius * .052]);
-  context.beginPath();
-  context.ellipse(0, 0, radius * 1.08, radius * .34, -.28, 0, Math.PI * 2);
-  context.stroke();
-  context.setLineDash([]);
-  context.restore();
-  return { x, y, radius };
 }
 
 function drawDawnParticle(context, x, y, particle, opacity, scale) {
