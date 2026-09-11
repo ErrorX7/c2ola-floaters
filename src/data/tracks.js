@@ -309,10 +309,6 @@ function installGoodnewsCurvedScore() {
 
 installGoodnewsCurvedScore();
 
-// Fragment 04 / 别害怕: keep the audio ending naturally around 10s, hold the
-// completed visual until 15s, then fade back to the second-scene exploration.
-// This layer is installed before app.js finishes evaluating, so it can track the
-// shelter animation frame and the track Audio instance without changing other nodes.
 function installShelterLifecycle() {
   const scene = document.querySelector("#shelterScene");
   const canvas = document.querySelector("#shelterCanvas");
@@ -337,8 +333,6 @@ function installShelterLifecycle() {
   let audioFadeFrame = 0;
   let shelterAudio = null;
 
-  // Track only the requestAnimationFrame chain used by drawShelterScene so an
-  // early dismissal can stop it instead of leaving a hidden loop running.
   const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
   const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
   const shelterFrames = new Set();
@@ -364,8 +358,6 @@ function installShelterLifecycle() {
     shelterFrames.clear();
   };
 
-  // app.js creates track audio with `new Audio(...)`; remember only 别害怕's
-  // instance so background dismissal can fade it without touching other songs.
   const NativeAudio = window.Audio;
   function LifecycleAudio(...args) {
     const media = new NativeAudio(...args);
@@ -468,7 +460,9 @@ function installShelterLifecycle() {
 
     visualExitAnimation.finished.then(() => {
       if (thisSession !== sessionId) return;
+      const finishedAnimation = visualExitAnimation;
       visualExitAnimation = null;
+      try { finishedAnimation?.cancel(); } catch (_) { /* already finished */ }
       resetShelterDom(media);
       sessionId += 1;
     }).catch(() => {});
@@ -482,6 +476,13 @@ function installShelterLifecycle() {
       try { visualExitAnimation.cancel(); } catch (_) { /* already finished */ }
       visualExitAnimation = null;
     }
+    // Defensive cleanup: a previous fill-forwards exit animation must never
+    // keep the scene at opacity:0 when the node is opened again.
+    scene.getAnimations().forEach(animation => {
+      if (animation.playState === "finished") {
+        try { animation.cancel(); } catch (_) { /* no-op */ }
+      }
+    });
     scene.style.removeProperty("filter");
     scene.style.removeProperty("opacity");
     const thisSession = sessionId;
@@ -492,8 +493,6 @@ function installShelterLifecycle() {
     }, TOTAL_MS);
   };
 
-  // A new track makes app.js remove .visible from this scene. Cancel our timer
-  // immediately so this node can never clear a later node by accident.
   new MutationObserver(() => {
     if (scene.classList.contains("visible")) {
       if (!shelterActive && !visualExitAnimation) beginSession();
@@ -504,8 +503,6 @@ function installShelterLifecycle() {
 
   scene.addEventListener("click", event => {
     if (!shelterActive || !scene.classList.contains("visible")) return;
-    // The checklist itself, its buttons, the person, clock, and any future
-    // focusable controls inside this node are meaningful content, not background.
     if (event.target.closest("button, a, input, textarea, select, label, .dream-todo, [role='button']")) return;
     dismissShelter("background");
   });
