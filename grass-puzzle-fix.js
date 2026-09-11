@@ -51,7 +51,7 @@ style.textContent = `
   }
 }
 
-/* Restore the pre-puzzle desktop copy position exactly at scene center. */
+/* Keep the copy centered while making the lyric block easier to read. */
 @media (min-width: 681px) {
   .grass-message-copy {
     position: absolute !important;
@@ -60,11 +60,18 @@ style.textContent = `
     top: 50% !important;
     transform: translate(-50%, -50%) !important;
     margin: 0 !important;
+    font-size: clamp(1.08rem, 2vw, 1.34rem) !important;
+    line-height: 1.95 !important;
   }
 }
 
 @media (max-width: 680px) {
-  .grass-message-copy { position: relative; z-index: 2; }
+  .grass-message-copy {
+    position: relative;
+    z-index: 2;
+    font-size: clamp(.86rem, 3.55vw, 1.02rem) !important;
+    line-height: 1.82 !important;
+  }
   .grass-puzzle-piece { width: calc(var(--piece-size) * .78) !important; opacity: .24 !important; }
   .grass-puzzle-piece.soft { opacity: .31 !important; }
 }
