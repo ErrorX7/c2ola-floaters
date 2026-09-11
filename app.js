@@ -34,6 +34,7 @@ const timelineMemoryBackdrop = document.querySelector("#timelineMemoryBackdrop")
 const timelineMemoryPaper = document.querySelector("#timelineMemoryPaper");
 const timelineMemoryClose = document.querySelector("#timelineMemoryClose");
 const timelineMemoryContent = document.querySelector("#timelineMemoryContent");
+const timelineMemoryCaption = document.querySelector("#timelineMemoryCaption");
 const grassMessage = document.querySelector("#grassMessage");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -807,6 +808,8 @@ function renderPosterTimeline() {
 
 function renderTimelineMemoryContent(item) {
   timelineMemoryContent.replaceChildren();
+  timelineMemoryCaption.textContent = item.contentCaption || "";
+  timelineMemoryCaption.classList.toggle("visible", Boolean(item.contentCaption));
   timelineMemoryContent.classList.remove("has-caption", "has-video");
   timelineMemoryPaper.classList.remove("has-video");
   if (item.contentType === "poster" || item.contentType === "image") {
@@ -815,13 +818,6 @@ function renderTimelineMemoryContent(item) {
     image.alt = item.contentAlt || item.year || "巡演回忆图片";
     image.draggable = false;
     timelineMemoryContent.append(image);
-    if (item.contentCaption) {
-      const caption = document.createElement("p");
-      caption.className = "timeline-memory-caption";
-      caption.textContent = item.contentCaption;
-      timelineMemoryContent.classList.add("has-caption");
-      timelineMemoryContent.append(caption);
-    }
     return;
   }
   if (item.contentType === "video") {
@@ -937,6 +933,8 @@ function closeTimelineMemory(immediate = false) {
     timelineMemory.setAttribute("aria-hidden", "true");
     posterReveal.classList.remove("timeline-memory-open");
     timelineMemoryContent.replaceChildren();
+    timelineMemoryCaption.textContent = "";
+    timelineMemoryCaption.classList.remove("visible");
     activeTimelineSticker?.classList.remove("memory-source", "returning");
     activeTimelineSticker = null;
   };
