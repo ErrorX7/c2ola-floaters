@@ -1395,7 +1395,51 @@ function showGrassMessage() {
     grassRevealTimers.push(timer);
   });
 }
+const grassPuzzlePieces = [
+  { x: 10, y: 16, size: 62, rotate: -18, opacity: .15, dx: 9, dy: -6, delay: -.2, duration: 12.5 },
+  { x: 21, y: 25, size: 78, rotate: 12, opacity: .18, dx: -8, dy: 5, delay: -1.1, duration: 13.8 },
+  { x: 50, y: 15, size: 54, rotate: -8, opacity: .12, dx: 5, dy: -4, delay: -2.1, duration: 12.2 },
+  { x: 82, y: 18, size: 70, rotate: 10, opacity: .14, dx: 7, dy: 6, delay: -.8, duration: 14.4 },
+  { x: 92, y: 33, size: 58, rotate: -14, opacity: .13, dx: -6, dy: 8, delay: -2.5, duration: 13.1 },
 
+  { x: 8, y: 49, size: 66, rotate: 7, opacity: .14, dx: 6, dy: -6, delay: -1.3, duration: 11.9 },
+  { x: 91, y: 53, size: 64, rotate: -9, opacity: .13, dx: -7, dy: 5, delay: -2.9, duration: 13.6 },
+
+  { x: 14, y: 74, size: 84, rotate: -16, opacity: .19, dx: 10, dy: -5, delay: -.6, duration: 14.8 },
+  { x: 27, y: 86, size: 74, rotate: 9, opacity: .17, dx: -7, dy: 7, delay: -1.7, duration: 12.9 },
+  { x: 42, y: 81, size: 60, rotate: -6, opacity: .15, dx: 5, dy: -7, delay: -2.2, duration: 12.7 },
+  { x: 56, y: 90, size: 68, rotate: 6, opacity: .16, dx: -5, dy: 6, delay: -1.2, duration: 13.2 },
+  { x: 72, y: 82, size: 76, rotate: 14, opacity: .15, dx: -9, dy: 4, delay: -3.1, duration: 14.1 },
+  { x: 88, y: 91, size: 60, rotate: -11, opacity: .14, dx: 7, dy: -5, delay: -2.4, duration: 12.6 }
+];
+
+function renderGrassPuzzles() {
+  if (!grassPuzzleLayer || grassPuzzleLayer.childElementCount) return;
+
+  const pieceSvg = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <path fill="white" d="M38 6h24c0 10 6 14 12 14s12-4 12-14h8v34c-10 0-14 6-14 12s4 12 14 12v30H62c0-10-6-14-12-14s-12 4-12 14H6V64c10 0 14-6 14-12S16 40 6 40V6h32c0 10 6 14 12 14s12-4 12-14Z"/>
+    </svg>
+  `);
+
+  grassPuzzlePieces.forEach((piece, index) => {
+    const el = document.createElement("span");
+    el.className = "grass-puzzle-piece";
+    el.setAttribute("aria-hidden", "true");
+    el.style.setProperty("--piece-x", piece.x);
+    el.style.setProperty("--piece-y", piece.y);
+    el.style.setProperty("--piece-size", `${piece.size}px`);
+    el.style.setProperty("--piece-rotate", `${piece.rotate}deg`);
+    el.style.setProperty("--piece-opacity", piece.opacity);
+    el.style.setProperty("--piece-dx", `${piece.dx}px`);
+    el.style.setProperty("--piece-dy", `${piece.dy}px`);
+    el.style.setProperty("--piece-delay", `${piece.delay}s`);
+    el.style.setProperty("--piece-time", `${piece.duration}s`);
+    el.style.backgroundImage = `url("data:image/svg+xml,${pieceSvg}")`;
+    if (index % 4 === 0) el.classList.add("soft");
+    grassPuzzleLayer.append(el);
+  });
+}
 function hideGrassMessage(immediate = false) {
   clearTimeout(grassFadeTimer);
   cancelGrassReveal();
@@ -2023,6 +2067,7 @@ window.addEventListener("resize", () => {
 
 renderPosterTimeline();
 renderTrackNodes();
+renderGrassPuzzles();
 scheduleBlink();
 requestAnimationFrame(animate);
 introAudio.defaultMuted = false;
