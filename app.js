@@ -77,6 +77,7 @@ let posterAmbientStopTimer;
 let posterTrackFadeFrame;
 let timelineAudio;
 let timelineAudioFadeFrame;
+let timelineVideo;
 
 function renderTrackNodes() {
   tracks.forEach((track, index) => {
@@ -521,6 +522,14 @@ function stopTimelineAudio(immediate = false) {
   timelineAudioFadeFrame = requestAnimationFrame(step);
 }
 
+function stopTimelineVideo() {
+  if (!timelineVideo) return;
+  timelineVideo.pause();
+  timelineVideo.controls = false;
+  try { timelineVideo.currentTime = 0; } catch (_) { /* metadata may not be ready */ }
+  timelineVideo = undefined;
+}
+
 function playTimelineAudio(item) {
   if (!item.audioSrc) return;
   stopPosterAmbience();
@@ -562,6 +571,7 @@ function stopAudio() {
   stopWildsSequence();
   stopPosterAmbience(true);
   stopTimelineAudio(true);
+  stopTimelineVideo();
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.currentTime = 0;
@@ -797,6 +807,8 @@ function renderPosterTimeline() {
 
 function renderTimelineMemoryContent(item) {
   timelineMemoryContent.replaceChildren();
+  timelineMemoryContent.classList.remove("has-caption", "has-video");
+  timelineMemoryPaper.classList.remove("has-video");
   if (item.contentType === "poster" || item.contentType === "image") {
     const image = document.createElement("img");
     image.src = item.contentSrc;
@@ -809,18 +821,74 @@ function renderTimelineMemoryContent(item) {
       caption.textContent = item.contentCaption;
       timelineMemoryContent.classList.add("has-caption");
       timelineMemoryContent.append(caption);
-    } else {
-      timelineMemoryContent.classList.remove("has-caption");
     }
     return;
   }
   if (item.contentType === "video") {
+    timelineMemoryContent.classList.add("has-video");
+    timelineMemoryPaper.classList.add("has-video");
+
+    const videoStage = document.createElement("div");
+    videoStage.className = "timeline-video-stage";
+
     const video = document.createElement("video");
     video.src = item.contentSrc;
-    video.controls = true;
+    video.poster = item.coverSrc || "";
+    video.controls = false;
     video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
     video.preload = "metadata";
-    timelineMemoryContent.append(video);
+    video.loop = false;
+    video.muted = muted;
+    video.setAttribute("aria-label", item.contentAlt || "巡演回忆视频");
+    timelineVideo = video;
+
+    const playButton = document.createElement("button");
+    playButton.className = "timeline-video-play";
+    playButton.type = "button";
+    playButton.setAttribute("aria-label", item.playPrompt || "点击播放视频");
+
+    const playIcon = document.createElement("img");
+    playIcon.src = item.playIconSrc;
+    playIcon.alt = "";
+    playIcon.draggable = false;
+
+    const playPrompt = document.createElement("span");
+    playPrompt.textContent = item.playPrompt || "点击播放视频";
+    playButton.append(playIcon, playPrompt);
+
+    playButton.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      playButton.disabled = true;
+      stopPosterAmbience();
+      if (activeAudio) {
+        const previousAudio = activeAudio;
+        fadeMediaVolume(previousAudio, 0, reducedMotion ? 20 : 420, () => {
+          if (activeAudio === previousAudio) {
+            previousAudio.pause();
+            activeAudio = null;
+          }
+        });
+      }
+      video.muted = muted;
+      video.controls = true;
+      video.play().then(() => {
+        videoStage.classList.add("is-playing");
+      }).catch(() => {
+        playButton.disabled = false;
+        video.controls = false;
+      });
+    });
+
+    video.addEventListener("ended", () => {
+      video.pause();
+      videoStage.classList.add("has-ended");
+    });
+
+    videoStage.append(video, playButton);
+    timelineMemoryContent.append(videoStage);
     return;
   }
   if (item.contentType === "text") {
@@ -832,7 +900,11 @@ function renderTimelineMemoryContent(item) {
 
 function openTimelineMemory(item, sticker) {
   closeFilmReel();
-  playTimelineAudio(item);
+  if (item.contentType === "video") {
+    stopTimelineAudio(true);
+  } else {
+    playTimelineAudio(item);
+  }
   clearTimeout(timelineCloseTimer);
   renderTimelineMemoryContent(item);
   activeTimelineSticker?.classList.remove("memory-source", "returning");
@@ -857,6 +929,7 @@ function openTimelineMemory(item, sticker) {
 function closeTimelineMemory(immediate = false) {
   if (timelineMemory.getAttribute("aria-hidden") === "true") return;
   stopTimelineAudio(immediate);
+  stopTimelineVideo();
   if (!immediate) window.setTimeout(startPosterAmbience, reducedMotion ? 0 : 480);
   clearTimeout(timelineCloseTimer);
   const finish = () => {
@@ -1234,6 +1307,7 @@ sound.addEventListener("click", () => {
     );
   }
   if (timelineAudio) timelineAudio.volume = muted ? 0 : .32;
+  if (timelineVideo) timelineVideo.muted = muted;
   if (posterAmbientGain && audioContext) {
     posterAmbientGain.gain.setTargetAtTime(muted ? .0001 : .115, audioContext.currentTime, .14);
   }
