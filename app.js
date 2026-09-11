@@ -36,6 +36,7 @@ const timelineMemoryClose = document.querySelector("#timelineMemoryClose");
 const timelineMemoryContent = document.querySelector("#timelineMemoryContent");
 const timelineMemoryCaption = document.querySelector("#timelineMemoryCaption");
 const grassMessage = document.querySelector("#grassMessage");
+const grassPuzzleLayer = document.querySelector("#grassPuzzleLayer");
 const dawnScene = document.querySelector("#dawnScene");
 const dawnCanvas = document.querySelector("#dawnCanvas");
 const shelterScene = document.querySelector("#shelterScene");
