@@ -502,3 +502,143 @@ function installDawnBackgroundDismiss() {
   });
 }
 installDawnBackgroundDismiss();
+
+function installWildsBackgroundDismiss() {
+  const world = document.querySelector("#world");
+  const formation = document.querySelector("#wildsFormation");
+  const lines = document.querySelector("#wildsLines");
+  const chibi = document.querySelector("#wildsChibiEntry");
+  const poster = document.querySelector("#posterReveal");
+  const caption = document.querySelector("#fragmentCaption");
+  const progress = document.querySelector("#fragmentProgress");
+  const worldHint = document.querySelector("#worldHint");
+  if (!world || !formation || !lines || !chibi || !poster || !caption || !progress || !worldHint) return;
+
+  const EXIT_MS = 800;
+  const DEFAULT_HINT = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let active = false;
+  let suppressed = false;
+  let generation = 0;
+  let visualAnimations = [];
+  let audioFadeFrame = 0;
+  let wildsAudio = null;
+
+  const previousPlay = HTMLMediaElement.prototype.play;
+  if (!HTMLMediaElement.prototype.__wildsDismissWrapped) {
+    Object.defineProperty(HTMLMediaElement.prototype, "__wildsDismissWrapped", { value: true });
+    HTMLMediaElement.prototype.play = function(...args) {
+      const src = this.currentSrc || this.src || "";
+      if (/zouchu-huangye\.mp3(?:\?|$)/i.test(src)) wildsAudio = this;
+      return previousPlay.apply(this, args);
+    };
+  }
+
+  const stopMedia = media => {
+    if (!media) return;
+    media.pause();
+    try { media.currentTime = 0; } catch (_) { /* metadata not ready */ }
+    if (wildsAudio === media) wildsAudio = null;
+  };
+
+  const fadeAudio = (media, duration) => {
+    if (!media || media.paused || media.ended) { stopMedia(media); return; }
+    if (audioFadeFrame) cancelAnimationFrame(audioFadeFrame);
+    const initial = Number.isFinite(media.volume) ? media.volume : .42;
+    const started = performance.now();
+    const tick = now => {
+      const p = Math.min(1, Math.max(0, (now - started) / duration));
+      media.volume = initial * (1 - p);
+      if (p < 1) audioFadeFrame = requestAnimationFrame(tick);
+      else { audioFadeFrame = 0; stopMedia(media); }
+    };
+    audioFadeFrame = requestAnimationFrame(tick);
+  };
+
+  const clearVisualAnimations = () => {
+    visualAnimations.forEach(animation => {
+      try { animation.cancel(); } catch (_) { /* no-op */ }
+    });
+    visualAnimations = [];
+    [formation, chibi].forEach(element => {
+      element.style.removeProperty("opacity");
+      element.style.removeProperty("filter");
+    });
+  };
+
+  const forceHidden = () => {
+    formation.classList.remove("active", "formed");
+    chibi.classList.remove("visible");
+    chibi.setAttribute("aria-hidden", "true");
+    lines.replaceChildren();
+  };
+
+  const resetDom = media => {
+    clearVisualAnimations();
+    if (audioFadeFrame) cancelAnimationFrame(audioFadeFrame);
+    audioFadeFrame = 0;
+    stopMedia(media);
+    forceHidden();
+    document.querySelector('[data-track-id="fragment-03"]')?.classList.remove("active", "near");
+    world.classList.remove("fragment-active");
+    caption.classList.remove("visible");
+    progress.getAnimations().forEach(animation => animation.cancel());
+    worldHint.textContent = DEFAULT_HINT;
+  };
+
+  const dismiss = () => {
+    if (!active || poster.classList.contains("open")) return;
+    active = false;
+    suppressed = true;
+    const media = wildsAudio;
+    const myGeneration = generation;
+    const duration = reducedMotion ? 80 : EXIT_MS;
+    fadeAudio(media, duration);
+    clearVisualAnimations();
+    const targets = [formation, chibi].filter(element => element.classList.contains("active") || element.classList.contains("formed") || element.classList.contains("visible"));
+    if (!targets.length) {
+      resetDom(media);
+      generation += 1;
+      return;
+    }
+    visualAnimations = targets.map(element => element.animate(
+      [{ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }],
+      { duration, easing: "cubic-bezier(.22,.68,.28,1)", fill: "forwards" }
+    ));
+    Promise.allSettled(visualAnimations.map(animation => animation.finished)).then(() => {
+      if (generation !== myGeneration) return;
+      resetDom(media);
+      generation += 1;
+    });
+  };
+
+  document.addEventListener("click", event => {
+    const node = event.target.closest?.('[data-track-id="fragment-03"]');
+    if (!node) return;
+    suppressed = false;
+    active = true;
+    generation += 1;
+    clearVisualAnimations();
+    forceHidden();
+    void formation.offsetWidth;
+  }, true);
+
+  const suppressLateWildsEffects = () => {
+    if (!suppressed) return;
+    if (formation.classList.contains("active") || formation.classList.contains("formed") || chibi.classList.contains("visible") || lines.childElementCount) {
+      forceHidden();
+    }
+  };
+  new MutationObserver(suppressLateWildsEffects).observe(formation, { attributes: true, attributeFilter: ["class"] });
+  new MutationObserver(suppressLateWildsEffects).observe(chibi, { attributes: true, attributeFilter: ["class"] });
+  new MutationObserver(suppressLateWildsEffects).observe(lines, { childList: true });
+
+  world.addEventListener("click", event => {
+    const node = document.querySelector('[data-track-id="fragment-03"]');
+    const wildsVisible = node?.classList.contains("active") || formation.classList.contains("active") || formation.classList.contains("formed") || chibi.classList.contains("visible");
+    if (!active || !wildsVisible || poster.classList.contains("open")) return;
+    if (event.target.closest("button, a, input, textarea, select, label, .track-node, .spark, .guiding-lamp, .fragment-caption, #wildsChibiEntry, #posterReveal, [role='button']")) return;
+    dismiss();
+  });
+}
+installWildsBackgroundDismiss();
