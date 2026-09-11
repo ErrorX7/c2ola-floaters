@@ -225,8 +225,6 @@ function installGoodnewsCurvedScore() {
 }
 installGoodnewsCurvedScore();
 
-// 别害怕 lifecycle overlay. Deliberately does NOT intercept requestAnimationFrame:
-// app.js owns the shelter draw loop, so reopening can always stop/restart it normally.
 function installShelterLifecycle() {
   const scene = document.querySelector("#shelterScene");
   const canvas = document.querySelector("#shelterCanvas");
@@ -243,6 +241,7 @@ function installShelterLifecycle() {
   const EXIT_MS = 800;
   const DEFAULT_HINT = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   let active = false;
   let generation = 0;
   let autoTimer = 0;
@@ -250,8 +249,6 @@ function installShelterLifecycle() {
   let audioFadeFrame = 0;
   let shelterAudio = null;
 
-  // Capture the actual media element when it starts playing instead of replacing
-  // window.Audio. This keeps repeated `new Audio()` calls completely native.
   const nativePlay = HTMLMediaElement.prototype.play;
   if (!HTMLMediaElement.prototype.__shelterLifecycleWrapped) {
     Object.defineProperty(HTMLMediaElement.prototype, "__shelterLifecycleWrapped", { value: true });
@@ -293,7 +290,6 @@ function installShelterLifecycle() {
       try { exitAnimation.cancel(); } catch (_) { /* no-op */ }
       exitAnimation = null;
     }
-    // Clear any stale WAAPI effect left on the scene, especially fill-forwards.
     scene.getAnimations().forEach(animation => {
       try { animation.cancel(); } catch (_) { /* no-op */ }
     });
@@ -351,8 +347,6 @@ function installShelterLifecycle() {
     }, TOTAL_MS);
   };
 
-  // Before app.js handles a click on fragment-04, guarantee a clean visual state
-  // and force a style flush. This makes the second/third/... open behave like the first.
   document.addEventListener("click", event => {
     const node = event.target.closest?.('[data-track-id="fragment-04"]');
     if (!node) return;
@@ -384,3 +378,127 @@ function installShelterLifecycle() {
   });
 }
 installShelterLifecycle();
+
+function installDawnBackgroundDismiss() {
+  const scene = document.querySelector("#dawnScene");
+  const world = document.querySelector("#world");
+  const stage = document.querySelector("#stage");
+  const caption = document.querySelector("#fragmentCaption");
+  const progress = document.querySelector("#fragmentProgress");
+  const worldHint = document.querySelector("#worldHint");
+  if (!scene || !world || !stage || !caption || !progress || !worldHint) return;
+
+  const EXIT_MS = 800;
+  const DEFAULT_HINT = "海上漂浮的空瓶，载满爱的信号，化作指路的灯火。";
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let active = false;
+  let generation = 0;
+  let exitAnimation = null;
+  let audioFadeFrame = 0;
+  let dawnAudio = null;
+
+  const previousPlay = HTMLMediaElement.prototype.play;
+  if (!HTMLMediaElement.prototype.__dawnDismissWrapped) {
+    Object.defineProperty(HTMLMediaElement.prototype, "__dawnDismissWrapped", { value: true });
+    HTMLMediaElement.prototype.play = function(...args) {
+      const src = this.currentSrc || this.src || "";
+      if (/lingchen\.mp3(?:\?|$)/i.test(src)) dawnAudio = this;
+      return previousPlay.apply(this, args);
+    };
+  }
+
+  const stopMedia = media => {
+    if (!media) return;
+    media.pause();
+    try { media.currentTime = 0; } catch (_) { /* metadata not ready */ }
+    if (dawnAudio === media) dawnAudio = null;
+  };
+
+  const fadeAudio = (media, duration) => {
+    if (!media || media.paused || media.ended) { stopMedia(media); return; }
+    if (audioFadeFrame) cancelAnimationFrame(audioFadeFrame);
+    const initial = Number.isFinite(media.volume) ? media.volume : .42;
+    const started = performance.now();
+    const tick = now => {
+      const p = Math.min(1, Math.max(0, (now - started) / duration));
+      media.volume = initial * (1 - p);
+      if (p < 1) audioFadeFrame = requestAnimationFrame(tick);
+      else { audioFadeFrame = 0; stopMedia(media); }
+    };
+    audioFadeFrame = requestAnimationFrame(tick);
+  };
+
+  const cleanPresentation = () => {
+    if (exitAnimation) {
+      try { exitAnimation.cancel(); } catch (_) { /* no-op */ }
+      exitAnimation = null;
+    }
+    scene.getAnimations().forEach(animation => {
+      try { animation.cancel(); } catch (_) { /* no-op */ }
+    });
+    scene.style.removeProperty("opacity");
+    scene.style.removeProperty("filter");
+  };
+
+  const resetDom = media => {
+    cleanPresentation();
+    if (audioFadeFrame) cancelAnimationFrame(audioFadeFrame);
+    audioFadeFrame = 0;
+    stopMedia(media);
+    scene.classList.remove("visible");
+    scene.setAttribute("aria-hidden", "true");
+    stage.classList.remove("dawn-moment");
+    document.querySelector('[data-track-id="fragment-05"]')?.classList.remove("active", "near");
+    world.classList.remove("fragment-active");
+    caption.classList.remove("visible");
+    progress.getAnimations().forEach(animation => animation.cancel());
+    worldHint.textContent = DEFAULT_HINT;
+  };
+
+  const dismiss = () => {
+    if (!active || !scene.classList.contains("visible")) return;
+    active = false;
+    const media = dawnAudio;
+    const myGeneration = generation;
+    const duration = reducedMotion ? 80 : EXIT_MS;
+    fadeAudio(media, duration);
+    cleanPresentation();
+    exitAnimation = scene.animate(
+      [{ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }],
+      { duration, easing: "cubic-bezier(.22,.68,.28,1)", fill: "forwards" }
+    );
+    exitAnimation.finished.then(() => {
+      if (generation !== myGeneration) return;
+      resetDom(media);
+      generation += 1;
+    }).catch(() => {});
+  };
+
+  document.addEventListener("click", event => {
+    const node = event.target.closest?.('[data-track-id="fragment-05"]');
+    if (!node) return;
+    active = false;
+    generation += 1;
+    cleanPresentation();
+    scene.classList.remove("visible");
+    scene.setAttribute("aria-hidden", "true");
+    void scene.offsetWidth;
+  }, true);
+
+  new MutationObserver(() => {
+    if (scene.classList.contains("visible")) {
+      generation += 1;
+      active = true;
+      cleanPresentation();
+    } else {
+      active = false;
+    }
+  }).observe(scene, { attributes: true, attributeFilter: ["class"] });
+
+  world.addEventListener("click", event => {
+    if (!active || !scene.classList.contains("visible")) return;
+    if (event.target.closest("button, a, input, textarea, select, label, .track-node, .spark, .guiding-lamp, .fragment-caption, [role='button']")) return;
+    dismiss();
+  });
+}
+installDawnBackgroundDismiss();
