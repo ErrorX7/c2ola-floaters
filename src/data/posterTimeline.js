@@ -79,10 +79,11 @@ export const posterTimeline = [
     id: 7,
     stickerSrc: "./timeline/sticker-07.webp?v=20260910a",
     year: "2024.3.6",
-    contentType: null,
-    contentSrc: null,
+    contentType: "image",
+    contentSrc: "./timeline/07-earphones.jpg?v=20260911a",
     audioSrc: null,
     audioVolume: .32,
+    contentAlt: "2024.3.6 耳机照片",
     position: { left: "76.6%", top: "69.6%", width: "18.8%", rotation: "10deg" },
     clipPath: "polygon(3% 13%, 94% 16%, 99% 67%, 12% 72%)"
   }
