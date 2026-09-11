@@ -1105,6 +1105,9 @@ function startWildsSequence(audio) {
       wildsAnimations.push(fade);
     });
   }, revealAt));
+  wildsTimers.push(setTimeout(() => {
+    if (runId === wildsRunId) stopWildsSequence();
+  }, revealAt + 5000));
 
   if (audio) {
     audio.addEventListener("ended", () => {

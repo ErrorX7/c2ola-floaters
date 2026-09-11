@@ -1497,7 +1497,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   .fragment-caption { bottom: 7rem; min-width: 72vw; }
   .wilds-word { top: 48%; font-size: clamp(3.15rem,18vw,5.15rem); line-height: .8; }
   .spark[data-spark-id="spark-03"] { --spark-x: 57% !important; --spark-y: 44% !important; }
-  .wilds-chibi-entry { right: max(.8rem,env(safe-area-inset-right)); bottom: max(1rem,env(safe-area-inset-bottom)); width: clamp(58px,18vw,76px); }
+  .wilds-chibi-entry { right: max(.8rem,env(safe-area-inset-right)); bottom: max(4.4rem,env(safe-area-inset-bottom)); width: clamp(58px,18vw,76px); }
   .wilds-chibi-entry span { font-size: .57rem; }
   .poster-sheet { --poster-pad: .34rem; width: min(90vw,430px,58dvh); padding: var(--poster-pad); }
   .poster-film-entry { left: 4.6%; bottom: 4.1%; width: 12.5%; }
