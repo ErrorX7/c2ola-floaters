@@ -1,3 +1,14 @@
+const grassCopy = document.querySelector("#grassMessage .grass-message-copy");
+if (grassCopy) {
+  grassCopy.innerHTML = `
+    <span class="grass-line">不管是亲人爱人<br>还是友情</span>
+    <span class="grass-line">都希望你能有人陪</span>
+    <span class="grass-line grass-gap">但是当你感到<br>没人陪的时候</span>
+    <span class="grass-line">希望听到这首歌</span>
+    <span class="grass-line grass-final">我会永远陪着你</span>
+  `;
+}
+
 const style = document.createElement("style");
 style.dataset.grassPuzzleFix = "true";
 style.textContent = `
@@ -71,6 +82,9 @@ style.textContent = `
     z-index: 2;
     font-size: clamp(.86rem, 3.55vw, 1.02rem) !important;
     line-height: 1.82 !important;
+  }
+  .grass-message-copy .grass-line {
+    white-space: nowrap !important;
   }
   .grass-puzzle-piece { width: calc(var(--piece-size) * .78) !important; opacity: .24 !important; }
   .grass-puzzle-piece.soft { opacity: .31 !important; }
