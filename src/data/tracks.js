@@ -3,6 +3,7 @@ import "../../goodnews-wave.js?v=20260912b";
 import "../../grass-puzzle-fix.js?v=20260912c";
 import "../../author-letter.js?v=20260912a";
 import "../../brand-credit.js?v=20260912b";
+import "../../shelter-song-fix.js?v=20260912a";
 
 export const tracks = [
   {
