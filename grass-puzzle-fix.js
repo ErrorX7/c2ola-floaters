@@ -39,7 +39,7 @@ style.textContent = `
   aspect-ratio: 1;
   transform: translate(-50%, -50%) rotate(var(--piece-rotate));
   transform-origin: center;
-  opacity: .28 !important;
+  opacity: var(--piece-opacity, .28) !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: contain !important;
@@ -48,7 +48,7 @@ style.textContent = `
   animation: grass-piece-drift-fix var(--piece-time) ease-in-out var(--piece-delay) infinite alternate;
 }
 .grass-puzzle-piece.soft {
-  opacity: .36 !important;
+  opacity: var(--piece-opacity, .36) !important;
   filter: drop-shadow(0 0 12px rgba(228,241,255,.34));
 }
 

@@ -1431,31 +1431,32 @@ function showGrassMessage() {
   });
 }
 const grassPuzzlePieces = [
-  { x: 10, y: 16, size: 62, rotate: -18, opacity: .15, dx: 9, dy: -6, delay: -.2, duration: 12.5 },
-  { x: 21, y: 25, size: 78, rotate: 12, opacity: .18, dx: -8, dy: 5, delay: -1.1, duration: 13.8 },
-  { x: 50, y: 15, size: 54, rotate: -8, opacity: .12, dx: 5, dy: -4, delay: -2.1, duration: 12.2 },
-  { x: 82, y: 18, size: 70, rotate: 10, opacity: .14, dx: 7, dy: 6, delay: -.8, duration: 14.4 },
-  { x: 92, y: 33, size: 58, rotate: -14, opacity: .13, dx: -6, dy: 8, delay: -2.5, duration: 13.1 },
-
-  { x: 8, y: 49, size: 66, rotate: 7, opacity: .14, dx: 6, dy: -6, delay: -1.3, duration: 11.9 },
-  { x: 91, y: 53, size: 64, rotate: -9, opacity: .13, dx: -7, dy: 5, delay: -2.9, duration: 13.6 },
-
-  { x: 14, y: 74, size: 84, rotate: -16, opacity: .19, dx: 10, dy: -5, delay: -.6, duration: 14.8 },
-  { x: 27, y: 86, size: 74, rotate: 9, opacity: .17, dx: -7, dy: 7, delay: -1.7, duration: 12.9 },
-  { x: 42, y: 81, size: 60, rotate: -6, opacity: .15, dx: 5, dy: -7, delay: -2.2, duration: 12.7 },
-  { x: 56, y: 90, size: 68, rotate: 6, opacity: .16, dx: -5, dy: 6, delay: -1.2, duration: 13.2 },
-  { x: 72, y: 82, size: 76, rotate: 14, opacity: .15, dx: -9, dy: 4, delay: -3.1, duration: 14.1 },
-  { x: 88, y: 91, size: 60, rotate: -11, opacity: .14, dx: 7, dy: -5, delay: -2.4, duration: 12.6 }
+  { x: 3, y: 72, size: 78, rotate: -18, opacity: .16, dx: 9, dy: -6, delay: -.2, duration: 12.5 },
+  { x: 13, y: 81, size: 86, rotate: 12, opacity: .2, dx: -8, dy: 5, delay: -1.1, duration: 13.8 },
+  { x: 25, y: 90, size: 70, rotate: -8, opacity: .17, dx: 5, dy: -4, delay: -2.1, duration: 12.2 },
+  { x: 36, y: 84, size: 62, rotate: 21, opacity: .13, dx: 7, dy: 6, delay: -.8, duration: 14.4 },
+  { x: 7, y: 53, size: 58, rotate: 7, opacity: .12, dx: 6, dy: -6, delay: -1.3, duration: 11.9 },
+  { x: 20, y: 67, size: 64, rotate: -9, opacity: .15, dx: -7, dy: 5, delay: -2.9, duration: 13.6 },
+  { x: 47, y: 17, size: 48, rotate: -14, opacity: .1, dx: 5, dy: -4, delay: -2.5, duration: 13.1 },
+  { x: 82, y: 20, size: 60, rotate: 10, opacity: .12, dx: 7, dy: 6, delay: -.8, duration: 14.4 },
+  { x: 94, y: 39, size: 55, rotate: -14, opacity: .11, dx: -6, dy: 8, delay: -2.5, duration: 13.1 },
+  { x: 91, y: 69, size: 64, rotate: -9, opacity: .12, dx: -7, dy: 5, delay: -2.9, duration: 13.6 },
+  { x: 48, y: 93, size: 55, rotate: 6, opacity: .1, dx: -5, dy: 6, delay: -1.2, duration: 13.2 }
 ];
 
 function renderGrassPuzzles() {
   if (!grassPuzzleLayer || grassPuzzleLayer.childElementCount) return;
 
-  const pieceSvg = encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-      <path fill="white" d="M38 6h24c0 10 6 14 12 14s12-4 12-14h8v34c-10 0-14 6-14 12s4 12 14 12v30H62c0-10-6-14-12-14s-12 4-12 14H6V64c10 0 14-6 14-12S16 40 6 40V6h32c0 10 6 14 12 14s12-4 12-14Z"/>
-    </svg>
-  `);
+  const pieceSvgs = [
+    'M8 8h29c-2 10 3 16 11 16s13-6 11-16h33v31c-10-2-16 3-16 11s6 13 16 11v31H60c2-10-3-16-11-16s-13 6-11 16H8V61c10 2 16-3 16-11S18 37 8 39Z',
+    'M6 6h31c-2 8 2 13 9 13s12-5 10-13h38v39c-9-2-14 3-14 10s5 12 14 10v32H48c2-9-3-14-10-14s-12 5-10 14H6V65c9 2 14-3 14-10S15 43 6 45Z',
+    'M10 5h28c0 9 5 14 12 14s12-5 12-14h33v29c-9 0-14 5-14 12s5 12 14 12v37H62c0-9-5-14-12-14s-12 5-12 14H10V59c9 0 14-5 14-12S19 35 10 35Z',
+    'M5 12h34c-3 9 1 16 9 16s13-7 10-16h37v34c-10-3-16 1-16 9s6 13 16 10v29H61c3-10-1-16-9-16s-13 6-10 16H5V61c10 3 16-1 16-9S15 39 5 42Z',
+    'M7 7h30c-2 11 4 16 11 16s13-5 11-16h34v37c-10-2-15 3-15 10s5 12 15 10v29H58c2-10-3-15-10-15s-12 5-10 15H7V58c10 2 15-3 15-10S17 36 7 38Z',
+    'M12 6h28c-1 8 3 13 10 13s11-5 10-13h34v35c-9-1-14 4-14 11s5 11 14 10v35H59c1-9-4-14-11-14s-12 5-11 14H12V62c9 1 14-4 14-11S21 40 12 41Z',
+    'M6 10h35c-2 7 2 12 9 12s11-5 9-12h35v35c-8-2-13 3-13 10s5 12 13 10v32H61c2-8-3-13-10-13s-12 5-10 13H6V65c8 2 13-3 13-10S14 43 6 45Z',
+    'M9 5h33c-1 10 4 15 11 15s12-5 11-15h31v35c-10-1-15 4-15 11s5 12 15 11v34H61c1-10-4-15-11-15s-12 5-11 15H9V62c10 1 15-4 15-11S19 39 9 40Z'
+  ].map(path => encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="white" d="${path}"/></svg>`));
 
   grassPuzzlePieces.forEach((piece, index) => {
     const el = document.createElement("span");
@@ -1470,7 +1471,7 @@ function renderGrassPuzzles() {
     el.style.setProperty("--piece-dy", `${piece.dy}px`);
     el.style.setProperty("--piece-delay", `${piece.delay}s`);
     el.style.setProperty("--piece-time", `${piece.duration}s`);
-    el.style.backgroundImage = `url("data:image/svg+xml,${pieceSvg}")`;
+    el.style.backgroundImage = `url("data:image/svg+xml,${pieceSvgs[index % pieceSvgs.length]}")`;
     if (index % 4 === 0) el.classList.add("soft");
     grassPuzzleLayer.append(el);
   });
