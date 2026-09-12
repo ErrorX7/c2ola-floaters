@@ -1,7 +1,7 @@
-const grassCopy = document.querySelector("#grassMessage .grass-message-copy");
+const grassMessage = document.querySelector("#grassMessage");
+const grassCopy = grassMessage?.querySelector(".grass-message-copy");
+
 if (grassCopy) {
-  // Keep each intended mobile line as its own element. This avoids relying on
-  // browser-specific wrapping and also makes the reveal sequence deterministic.
   grassCopy.innerHTML = `
     <span class="grass-line">不管是亲人爱人</span>
     <span class="grass-line">还是友情</span>
@@ -55,6 +55,24 @@ style.textContent = `
 @keyframes grass-piece-drift-fix {
   from { transform: translate(-50%, -50%) rotate(var(--piece-rotate)); }
   to { transform: translate(calc(-50% + var(--piece-dx)), calc(-50% + var(--piece-dy))) rotate(calc(var(--piece-rotate) + 7deg)); }
+}
+
+/* The main app still adds its old is-revealed class on only five timings.
+   Ignore that class here and use one seven-line sequence on every device. */
+.grass-message.visible .grass-line {
+  opacity: 0 !important;
+  transform: translateY(8px) !important;
+  filter: blur(4px) !important;
+  animation: none !important;
+  transition: opacity .62s ease, transform .62s ease, filter .62s ease !important;
+}
+.grass-message.visible .grass-line.grass-seq-revealed {
+  opacity: .9 !important;
+  transform: translateY(0) !important;
+  filter: blur(0) !important;
+}
+.grass-message.visible .grass-final.grass-seq-revealed {
+  opacity: 1 !important;
 }
 
 @media (min-width: 681px) {
@@ -111,19 +129,6 @@ style.textContent = `
   .grass-message-copy .grass-line.grass-gap { margin-top: .62em !important; }
   .grass-message-copy .grass-final { margin-top: .72em !important; }
 
-  /* Mobile browsers differed on the old timer/class based reveal. Once the
-     message is visible, reveal every line reliably and let opacity transition
-     handle the entrance instead of leaving early lines at opacity: 0. */
-  .grass-message.visible .grass-line,
-  .grass-message.visible .grass-line.is-revealed {
-    opacity: .9 !important;
-    transform: translateY(0) !important;
-    filter: blur(0) !important;
-    animation: none !important;
-  }
-  .grass-message.visible .grass-final,
-  .grass-message.visible .grass-final.is-revealed { opacity: 1 !important; }
-
   .grass-puzzle-piece { width: calc(var(--piece-size) * .78) !important; opacity: .24 !important; }
   .grass-puzzle-piece.soft { opacity: .31 !important; }
 }
@@ -139,6 +144,46 @@ style.textContent = `
 
 @media (prefers-reduced-motion: reduce) {
   .grass-puzzle-piece { animation: none !important; }
+  .grass-message.visible .grass-line { transition: none !important; }
 }
 `;
 document.head.append(style);
+
+let grassSequenceTimers = [];
+
+function clearGrassSequence() {
+  grassSequenceTimers.forEach(timer => clearTimeout(timer));
+  grassSequenceTimers = [];
+}
+
+function resetGrassSequence() {
+  clearGrassSequence();
+  grassMessage?.querySelectorAll(".grass-line").forEach(line => line.classList.remove("grass-seq-revealed"));
+}
+
+function startGrassSequence() {
+  if (!grassMessage?.classList.contains("visible") || grassMessage.classList.contains("exiting")) return;
+  resetGrassSequence();
+  const lines = [...grassMessage.querySelectorAll(".grass-line")];
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const revealDelays = reduced
+    ? lines.map(() => 0)
+    : [100, 400, 700, 1000, 1300, 1600, 2050];
+
+  lines.forEach((line, index) => {
+    const timer = window.setTimeout(() => {
+      if (!grassMessage.classList.contains("visible") || grassMessage.classList.contains("exiting")) return;
+      line.classList.add("grass-seq-revealed");
+    }, revealDelays[index] ?? (100 + index * 300));
+    grassSequenceTimers.push(timer);
+  });
+}
+
+if (grassMessage) {
+  new MutationObserver(() => {
+    if (grassMessage.classList.contains("visible") && !grassMessage.classList.contains("exiting")) startGrassSequence();
+    else resetGrassSequence();
+  }).observe(grassMessage, { attributes: true, attributeFilter: ["class"] });
+
+  if (grassMessage.classList.contains("visible")) startGrassSequence();
+}
