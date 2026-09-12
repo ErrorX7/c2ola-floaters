@@ -2,6 +2,7 @@ import "../../wilds-reel-song.js?v=20260912c";
 import "../../goodnews-wave.js?v=20260912b";
 import "../../grass-puzzle-fix.js?v=20260911a";
 import "../../author-letter.js?v=20260912a";
+import "../../brand-credit.js?v=20260912a";
 
 export const tracks = [
   {
