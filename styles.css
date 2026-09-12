@@ -1265,7 +1265,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   text-shadow: 0 0 20px rgba(176,218,188,.18);
 }
 .grass-message.visible .grass-final { animation-name: grass-final-in; }
-.stage.grass-moment .floater-field .ambient-floater {
+.stage.grass-moment .floater-field .ambient-floater,
+.stage.grass-moment .ambient-floater-canvas {
   opacity: .48 !important;
 }
 .stage.grass-moment .world-haze,
@@ -1360,7 +1361,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   opacity: 1;
   transform: translate(-50%, 0);
 }
-.stage.dawn-moment .floater-field .ambient-floater { opacity: .16 !important; }
+.stage.dawn-moment .floater-field .ambient-floater,
+.stage.dawn-moment .ambient-floater-canvas { opacity: .16 !important; }
 .stage.dawn-moment .fragment-caption,
 .stage.dawn-moment .world-hint { opacity: 0; }
 
@@ -1500,7 +1502,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 @keyframes shelter-sway { 25%{rotate:-2deg} 70%{rotate:2deg} }
 @keyframes clock-glow { 50% { filter:drop-shadow(0 0 23px rgba(235,246,255,.8)); } }
 .shelter-scene.roof-formed .melting-clock { animation: clock-glow 1.4s ease 2.2s 1; }
-.stage.shelter-moment .floater-field .ambient-floater { opacity: .12!important; }
+.stage.shelter-moment .floater-field .ambient-floater,
+.stage.shelter-moment .ambient-floater-canvas { opacity: .12!important; }
 .stage.shelter-moment .fragment-caption,.stage.shelter-moment .world-hint { opacity: 0; }
 
 .goodnews-scene {
@@ -1583,7 +1586,8 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
   30%,72% { opacity:.75; transform:scaleX(1); }
   to { opacity:.15; transform:scaleX(.35); }
 }
-.stage.goodnews-moment .floater-field .ambient-floater { opacity:.1!important; }
+.stage.goodnews-moment .floater-field .ambient-floater,
+.stage.goodnews-moment .ambient-floater-canvas { opacity:.1!important; }
 .stage.goodnews-moment .fragment-caption,
 .stage.goodnews-moment .world-hint { opacity:0; }
 
@@ -1624,6 +1628,7 @@ button:focus-visible { outline: 1px solid #eef5ff; outline-offset: 7px; }
 .track-nodes, .floater-field { position: absolute; inset: 0; }
 .track-nodes { z-index: 14; pointer-events: none; }
 .floater-field { z-index: 12; pointer-events: none; }
+.ambient-floater-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; opacity: .72; pointer-events: none; mix-blend-mode: screen; }
 .track-node {
   position: absolute;
   left: var(--x);

@@ -303,32 +303,64 @@ const floaterSpecs = [
   ["white-thread", 62, 18, 17, 86, .69, .11, true]
 ];
 
-const floaters = floaterSpecs.map((spec, index) => {
-  const [kind, width, height, xPercent, yPercent, depth, opacity, worldOnly = false] = spec;
-  const element = document.createElement("span");
-  const transparent = ["membrane", "ring", "wisp", "white-membrane", "pale-ring", "glass-speck", "white-thread"].includes(kind);
-  element.className = `ambient-floater ${kind}${worldOnly ? " world-floater" : ""}`;
-  element.style.setProperty("--w", `${width}px`);
-  element.style.setProperty("--h", `${height}px`);
-  element.style.setProperty("--base-opacity", opacity);
-  element.style.setProperty("--blur", `${Math.max(0, (1.1 - depth) * 2.2)}px`);
-  element.style.transform = `translate3d(${window.innerWidth * xPercent / 100}px,${window.innerHeight * yPercent / 100}px,0)`;
-  floaterField.append(element);
-  return {
-    element,
-    transparent,
-    worldOnly,
-    x: window.innerWidth * xPercent / 100,
-    y: window.innerHeight * yPercent / 100,
-    vx: 0,
-    vy: 0,
-    depth,
-    opacity,
-    rotation: (index * 23) % 180,
-    phase: index * 1.37,
-    speed: transparent ? .018 + depth * .013 : .032 + depth * .026
-  };
-});
+const floaterCanvas = document.createElement("canvas");
+floaterCanvas.className = "ambient-floater-canvas";
+floaterCanvas.setAttribute("aria-hidden", "true");
+floaterField.replaceChildren(floaterCanvas);
+const floaterContext = floaterCanvas.getContext("2d");
+let floaterFrame;
+let floaterLastTime = performance.now();
+let floaterMotionX = 0;
+let floaterMotionY = 0;
+let floaterPointerX = pointer.targetX;
+let floaterPointerY = pointer.targetY;
+
+function createAmbientFloaters() {
+  const mobile = window.innerWidth <= 680;
+  const count = reducedMotion ? (mobile ? 10 : 16) : (mobile ? 18 : 28);
+  const kinds = ["thread","thread","thread","thread","dot","dot","dot","dot","dot","dot","dot","dot","ring","ring","tadpole","tadpole","mist","mist","mist","mist","thread","dot","thread","dot","ring","dot","thread","mist"];
+  return Array.from({ length: count }, (_, index) => {
+    const kind = kinds[index % kinds.length];
+    const depth = index % 7 === 0 ? .22 + Math.random() * .16 : index % 3 === 0 ? .48 + Math.random() * .18 : .72 + Math.random() * .2;
+    return { kind, depth, x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+      vx: 0, vy: 0, phase: Math.random() * Math.PI * 2, speed: .00018 + Math.random() * .00034,
+      drift: .12 + Math.random() * .44, size: kind === "mist" ? 24 + Math.random() * 62 : kind === "thread" ? 22 + Math.random() * 68 : 1.5 + Math.random() * 4.5,
+      length: 18 + Math.random() * 58, angle: Math.random() * Math.PI, opacity: (kind === "mist" ? .035 : .09) + Math.random() * .14 };
+  });
+}
+let floaters = createAmbientFloaters();
+
+function resizeAmbientFloaters() {
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const width = window.innerWidth, height = window.innerHeight;
+  floaterCanvas.width = Math.round(width * ratio); floaterCanvas.height = Math.round(height * ratio);
+  floaterCanvas.style.width = `${width}px`; floaterCanvas.style.height = `${height}px`;
+  floaters = createAmbientFloaters();
+}
+
+function drawAmbientFloater(context, floater, time, motion) {
+  const near = 1 - floater.depth;
+  const alpha = floater.opacity * (.7 + near * .35);
+  context.save(); context.globalAlpha = alpha; context.strokeStyle = "rgba(186,199,216,.8)"; context.fillStyle = "rgba(186,199,216,.62)"; context.lineWidth = .55 + near * .65; context.lineCap = "round";
+  const x = floater.x + motion.x * (1.1 - floater.depth), y = floater.y + motion.y * (1.1 - floater.depth);
+  if (floater.kind === "dot") { context.beginPath(); context.arc(x, y, floater.size * (.72 + near * .35), 0, Math.PI * 2); context.fill(); }
+  else if (floater.kind === "ring") { context.beginPath(); context.ellipse(x, y, floater.size * 1.7, floater.size * 1.15, floater.angle, 0, Math.PI * 2); context.stroke(); }
+  else if (floater.kind === "tadpole") { context.beginPath(); context.arc(x, y, floater.size * .95, 0, Math.PI * 2); context.fill(); context.beginPath(); context.moveTo(x - floater.size, y); context.quadraticCurveTo(x - floater.size * 5, y - floater.size * 1.6, x - floater.size * 8, y + floater.size * 1.1); context.stroke(); }
+  else if (floater.kind === "mist") { context.globalAlpha = alpha * .55; context.filter = `blur(${2 + near * 3}px)`; context.beginPath(); context.ellipse(x, y, floater.size * 1.45, floater.size * .42, floater.angle, 0, Math.PI * 2); context.fill(); }
+  else { const a = floater.angle + Math.sin(time * floater.speed + floater.phase) * .28; const bend = floater.length * .45; context.beginPath(); context.moveTo(x - Math.cos(a) * bend, y - Math.sin(a) * bend); context.quadraticCurveTo(x + Math.sin(a) * 8, y - Math.cos(a) * 6, x + Math.cos(a) * bend, y + Math.sin(a) * bend); context.stroke(); }
+  context.restore();
+}
+
+function drawAmbientLayer(time) {
+  const delta = Math.min(42, time - floaterLastTime); floaterLastTime = time;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2); const width = window.innerWidth, height = window.innerHeight;
+  floaterContext.setTransform(ratio, 0, 0, ratio, 0, 0); floaterContext.clearRect(0, 0, width, height);
+  floaterMotionX *= Math.pow(.91, delta / 16); floaterMotionY *= Math.pow(.91, delta / 16);
+  const motion = { x: floaterMotionX, y: floaterMotionY };
+  floaters.forEach(floater => { const t = time * floater.speed + floater.phase; floater.vx += Math.sin(t) * .004 * floater.drift + floaterMotionX * .0009; floater.vy += Math.cos(t * .83) * .0035 * floater.drift + floaterMotionY * .0009; const damping = .985 - floater.depth * .004; floater.vx *= damping; floater.vy *= damping; floater.x += floater.vx * delta; floater.y += floater.vy * delta; const margin = floater.size * 2 + 40; if (floater.x < -margin) floater.x = width + margin; if (floater.x > width + margin) floater.x = -margin; if (floater.y < -margin) floater.y = height + margin; if (floater.y > height + margin) floater.y = -margin; drawAmbientFloater(floaterContext, floater, time, motion); });
+  if (!document.hidden) floaterFrame = requestAnimationFrame(drawAmbientLayer);
+}
+resizeAmbientFloaters();
 
 function initializeAudio() {
   if (audioContext) return;
@@ -1890,6 +1922,12 @@ function findNearestTrack() {
 }
 
 function updatePointer(event) {
+  const dx = event.clientX - floaterPointerX;
+  const dy = event.clientY - floaterPointerY;
+  floaterMotionX = Math.max(-30, Math.min(30, floaterMotionX + dx * .11));
+  floaterMotionY = Math.max(-30, Math.min(30, floaterMotionY + dy * .11));
+  floaterPointerX = event.clientX;
+  floaterPointerY = event.clientY;
   pointer.targetX = event.clientX;
   pointer.targetY = event.clientY;
   pointer.lastMoveAt = performance.now();
@@ -1928,41 +1966,6 @@ function animate(time) {
   root.style.setProperty("--gaze-x", `${gaze.x.toFixed(2)}px`);
   root.style.setProperty("--gaze-y", `${gaze.y.toFixed(2)}px`);
 
-  if (!reducedMotion) {
-    floaters.forEach((floater, index) => {
-      const dx = floater.x - pointer.x;
-      const dy = floater.y - pointer.y;
-      const distance = Math.max(1, Math.hypot(dx, dy));
-      const radius = floater.transparent ? 190 : 145;
-      if (distance < radius) {
-        const repulsion = (1 - distance / radius) * (floater.transparent ? .052 : .16) * floater.depth;
-        floater.vx += dx / distance * repulsion;
-        floater.vy += dy / distance * repulsion;
-      }
-      const seconds = time * .001;
-      floater.vx += Math.sin(seconds * floater.speed + floater.phase) * (floater.transparent ? .0017 : .004);
-      floater.vy += Math.cos(seconds * floater.speed * .8 + floater.phase) * (floater.transparent ? .0014 : .0035);
-      const drag = floater.transparent ? .992 : .978;
-      floater.vx *= drag;
-      floater.vy *= drag;
-      floater.x += floater.vx + Math.sin(seconds * floater.speed + index) * .025 * floater.depth;
-      floater.y += floater.vy + Math.cos(seconds * floater.speed * .7 + index) * .018 * floater.depth;
-      floater.rotation += floater.transparent ? .004 + floater.depth * .002 : .014;
-
-      const margin = 170;
-      if (floater.x < -margin) floater.x = window.innerWidth + margin;
-      if (floater.x > window.innerWidth + margin) floater.x = -margin;
-      if (floater.y < -margin) floater.y = window.innerHeight + margin;
-      if (floater.y > window.innerHeight + margin) floater.y = -margin;
-
-      const illumination = Math.max(0, 1 - Math.hypot(floater.x - pointer.x, floater.y - pointer.y) / 330);
-      const opacity = floater.transparent ? floater.opacity + illumination * .22 : floater.opacity * (.82 + illumination * .18);
-      const parallaxX = (pointer.x / window.innerWidth - .5) * floater.depth * (floater.transparent ? -10 : -4);
-      const parallaxY = (pointer.y / window.innerHeight - .5) * floater.depth * (floater.transparent ? -7 : -3);
-      floater.element.style.opacity = opacity.toFixed(3);
-      floater.element.style.transform = `translate3d(${(floater.x + parallaxX).toFixed(2)}px, ${(floater.y + parallaxY).toFixed(2)}px, 0) rotate(${floater.rotation.toFixed(2)}deg)`;
-    });
-  }
   requestAnimationFrame(animate);
 }
 
@@ -2124,6 +2127,13 @@ window.addEventListener("pointerdown", event => {
 window.addEventListener("keydown", () => startIntroAudio(), { capture: true, once: true });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
+    if (floaterFrame) cancelAnimationFrame(floaterFrame);
+    floaterFrame = undefined;
+  } else if (!floaterFrame) {
+    floaterLastTime = performance.now();
+    floaterFrame = requestAnimationFrame(drawAmbientLayer);
+  }
+  if (document.hidden) {
     introResumeAfterVisibility = !introAudio.paused && !muted && !stage.classList.contains("entered");
     if (introResumeAfterVisibility) pauseIntroAudio(false);
   } else if (introResumeAfterVisibility) {
@@ -2134,6 +2144,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("resize", () => {
   pointer.targetX = Math.min(pointer.targetX, window.innerWidth);
   pointer.targetY = Math.min(pointer.targetY, window.innerHeight);
+  resizeAmbientFloaters();
 });
 
 renderPosterTimeline();
@@ -2141,6 +2152,7 @@ renderTrackNodes();
 renderGrassPuzzles();
 scheduleBlink();
 requestAnimationFrame(animate);
+floaterFrame = requestAnimationFrame(drawAmbientLayer);
 introAudio.defaultMuted = false;
 introAudio.muted = false;
 updateSoundControl();
