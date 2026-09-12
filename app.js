@@ -317,7 +317,10 @@ let floaterPointerY = pointer.targetY;
 
 function createAmbientFloaters() {
   const mobile = window.innerWidth <= 680;
-  const count = reducedMotion ? (mobile ? 10 : 16) : (mobile ? 18 : 28);
+  const inWorld = stage.classList.contains("entered");
+  const count = reducedMotion
+    ? (mobile ? 10 : 16)
+    : (inWorld ? (mobile ? 20 : 32) : (mobile ? 16 : 22));
   const kinds = ["thread","thread","thread","thread","dot","dot","dot","dot","dot","dot","dot","dot","ring","ring","tadpole","tadpole","mist","mist","mist","mist","thread","dot","thread","dot","ring","dot","thread","mist"];
   return Array.from({ length: count }, (_, index) => {
     const kind = kinds[index % kinds.length];
@@ -1972,6 +1975,7 @@ function animate(time) {
 enter.addEventListener("click", () => {
   fadeOutIntro();
   stage.classList.add("entered");
+  resizeAmbientFloaters();
   updateSoundControl();
   initializeAudio();
   if (audioContext?.state === "suspended") audioContext.resume();
@@ -2084,6 +2088,7 @@ reset.addEventListener("click", async () => {
   fragmentActivationRequest += 1;
   await exitActiveFragment("reset");
   stage.classList.remove("entered");
+  resizeAmbientFloaters();
   world.classList.remove("fragment-active");
   fragmentCaption.classList.remove("visible");
   document.querySelectorAll(".track-node").forEach(node => node.classList.remove("active", "near"));
