@@ -19,6 +19,7 @@ if (scene && originalCanvas) {
   let startedAt = 0;
   let points = [];
   let run = 0;
+  let wasVisible = scene.classList.contains('visible');
 
   const ease = v => {
     const n = Math.max(0, Math.min(1, v));
@@ -169,11 +170,21 @@ if (scene && originalCanvas) {
   function stop() {
     run += 1;
     cancelAnimationFrame(raf);
+    raf = 0;
     ctx.clearRect(0,0,canvas.width,canvas.height);
   }
 
-  new MutationObserver(() => scene.classList.contains('visible') ? start() : stop())
-    .observe(scene,{attributes:true,attributeFilter:['class']});
+  // Only start on the actual hidden -> visible transition and stop on
+  // visible -> hidden. The scene also adds/removes helper classes such as
+  // "formed" while a fragment is running; those class changes must not
+  // restart the score animation midway through the same music fragment.
+  new MutationObserver(() => {
+    const isVisible = scene.classList.contains('visible');
+    if (isVisible === wasVisible) return;
+    wasVisible = isVisible;
+    if (isVisible) start();
+    else stop();
+  }).observe(scene,{attributes:true,attributeFilter:['class']});
 
   window.addEventListener('resize', () => {
     if (scene.classList.contains('visible')) rebuild();
