@@ -4,7 +4,7 @@ import "../../grass-puzzle-fix.js?v=20260912c";
 import "../../author-letter.js?v=20260912a";
 import "../../brand-credit.js?v=20260912b";
 import "../../shelter-song-fix.js?v=20260912a";
-import "../../poster-sticker-hints.js?v=20260913a";
+import "../../poster-sticker-hints.js?v=20260913b";
 
 export const tracks = [
   {
